@@ -1,0 +1,10 @@
+*.pyc
+*.iml
+*~
+*.swp
+.idea
+/venv
+/build
+/dist
+ansible-role-test.spec
+*.egg-info
