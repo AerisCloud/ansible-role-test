@@ -41,7 +41,9 @@ playbook:
 # can call the same role several times in a row but I'd rather recommend creating
 # separate test files for each call to ensure that they run in a clean env
   roles:
-  - role: my-role
+# "@ROLE_NAME@" is a magic variable that will be replaced by the name of the role
+# on your filesystem before running the tests
+  - role: "@ROLE_NAME@"
     var1: something
     var2: something
   tasks:

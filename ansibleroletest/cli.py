@@ -33,20 +33,6 @@ def ansible_header(text):
     click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
 
-def generate_inventory(targets):
-    """
-    Generate an inventory for the given test
-    :param targets:
-    :return:
-    """
-    inventory = '[test]\n'
-    for name, container in targets.iteritems():
-        inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
-                     'ansible_ssh_pass=ansible\n'\
-            .format(name,container.internal_ip)
-    return inventory
-
-
 def run(container, cmd):
     """
     Run a command and return the output code and command result
@@ -83,47 +69,18 @@ def stream(container, cmd):
         raise ExecuteReturnCodeError(cmd[0], res.get('ExitCode'))
 
 
-def run_test(docker, ansible, work_dir, test):
+def generate_inventory(targets):
     """
-    Spawn docker images for the test, generate the inventory and playbook then run it
-    :param docker:
-    :param ansible:
-    :param work_dir:
-    :param test:
+    Generate an inventory for the given test
+    :param targets:
     :return:
     """
-    ansible_header('TEST [%s]' % test['name'])
-
-    containers = {}
-    try:
-        # create test containers
-        ansible_header('STARTING CONTAINERS')
-
-        for name, image in test['containers'].iteritems():
-            full_image = 'aeriscloud/ansible-%s' % image
-            container = docker.create(name, image=full_image)
-            container.start()
-            click.secho('ok: [%s]' % full_image, fg='green')
-            containers[name] = container
-
-        # create test inventory
-        with open(os.path.join(work_dir, 'inventory'), 'w') as fd:
-            fd.write(generate_inventory(containers))
-
-        # create playbook
-        with open(os.path.join(work_dir, 'test.yml'), 'w') as fd:
-            yaml.dump(test['playbook'], fd)
-
-        ansible_header('RUNNING TESTS')
-        stream(ansible, [
-            'ansible-playbook', '-i', '/work/inventory',
-            '/work/test.yml'
-        ])
-    finally:
-        ansible_header('CLEANING CONTAINERS')
-        for name, container in containers.iteritems():
-            docker.destroy(name)
-            click.secho('ok: [%s]' % container.image, fg='green')
+    inventory = '[test]\n'
+    for name, container in targets.iteritems():
+        inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
+                     'ansible_ssh_pass=ansible\n'\
+            .format(name,container.internal_ip)
+    return inventory
 
 
 def setup_ansible(docker, work_dir, ansible_version, role):
@@ -143,18 +100,24 @@ def setup_ansible(docker, work_dir, ansible_version, role):
         work_dir: '/work'
     }
 
+    role_name = role
     role_path = '/etc/ansible/roles/{0}'.format(role)
     if os.path.isdir(role):
         # role is a folder name, use that
-        role_path = '/etc/ansible/roles/{0}'.format(os.path.basename(role))
+        role_name = os.path.basename(role)
+        role_path = '/etc/ansible/roles/{0}'.format(role_name)
+
         binds[os.path.realpath(role)] = role_path
         ansible.start(binds=binds)
         click.secho('ok: [%s]' % ansible.image, fg='green')
+
+        install_role_deps(ansible, role_path)
     elif role.endswith('.git') or '.git#' in role:
         # role is a git repository
         p = parse(role)
 
-        role_path = '/etc/ansible/roles/{0}'.format(p.repo)
+        role_name = p.repo
+        role_path = '/etc/ansible/roles/{0}'.format(role_name)
         ansible.start(binds=binds)
         click.secho('ok: [%s]' % ansible.image, fg='green')
 
@@ -167,15 +130,49 @@ def setup_ansible(docker, work_dir, ansible_version, role):
             git_cmd += ['-b', branch]
         git_cmd.append(role_path)
         stream(ansible, git_cmd)
+
+        install_role_deps(ansible, role_path)
     else:
         # role is an ansible galaxy role
         ansible.start(binds=binds)
         click.secho('ok: [%s]' % ansible.image, fg='green')
 
         ansible_header('GALAXY [%s]' % role)
-        click.echo(run(ansible, ['ansible-galaxy', 'install', role]))
+        stream(ansible, ['ansible-galaxy', 'install', role])
 
-    return ansible, role_path
+    return ansible, role_path, role_name
+
+
+def install_role_deps(ansible, role_path):
+    """
+    Check the meta file and install role dependencies
+    :param ansible:
+    :param role_path:
+    """
+    try:
+        meta = run(ansible,
+                   ['cat', os.path.join(role_path, 'meta', 'main.yml')])
+    except ExecuteReturnCodeError as e:
+        if e.code != 2:
+            raise
+        return
+
+    metadata = yaml.load(meta)
+    if 'dependencies' not in metadata or not metadata['dependencies']:
+        return
+
+    done = []
+    for dependency in metadata['dependencies']:
+        if not 'role' in dependency:
+            continue
+
+        role_name = dependency['role']
+        if role_name in done:
+            continue
+
+        ansible_header('DEPENDENCY: [%s]' % role_name)
+        stream(ansible, ['ansible-galaxy', 'install', role_name])
+        done.append(role_name)
 
 
 def get_tests(ansible, role_path):
@@ -205,6 +202,51 @@ def get_tests(ansible, role_path):
         yield test
 
 
+def run_test(docker, ansible, work_dir, role_name, test):
+    """
+    Spawn docker images for the test, generate the inventory and playbook then run it
+    :param docker:
+    :param ansible:
+    :param work_dir:
+    :param test:
+    :return:
+    """
+    ansible_header('TEST [%s]' % test['name'])
+
+    containers = {}
+    try:
+        # create test containers
+        ansible_header('STARTING CONTAINERS')
+
+        for name, image in test['containers'].iteritems():
+            full_image = 'aeriscloud/ansible-%s' % image
+            container = docker.create(name, image=full_image)
+            container.start()
+            click.secho('ok: [%s]' % full_image, fg='green')
+            containers[name] = container
+
+        # create test inventory
+        with open(os.path.join(work_dir, 'inventory'), 'w') as fd:
+            fd.write(generate_inventory(containers))
+
+        # create playbook
+        with open(os.path.join(work_dir, 'test.yml'), 'w') as fd:
+            playbook = yaml.dump(test['playbook']).replace('@ROLE_NAME@', role_name)
+            fd.write(playbook)
+
+        ansible_header('RUNNING TESTS')
+        ansible_cmd = [
+            'ansible-playbook', '-i', '/work/inventory',
+            '/work/test.yml'
+        ]
+        stream(ansible, ansible_cmd)
+    finally:
+        ansible_header('CLEANING CONTAINERS')
+        for name, container in containers.iteritems():
+            docker.destroy(name)
+            click.secho('ok: [%s]' % container.image, fg='green')
+
+
 @click.command()
 @click.option('--ansible-version', default='latest')
 @click.argument('role')
@@ -218,10 +260,10 @@ def main(ansible_version, role):
     try:
         ansible_header('TESTS [%s]' % role)
 
-        ansible, role_path = setup_ansible(docker, work_dir, ansible_version, role)
+        ansible, role_path, role_name = setup_ansible(docker, work_dir, ansible_version, role)
 
         for test in get_tests(ansible, role_path):
-            run_test(docker, ansible, work_dir, test)
+            run_test(docker, ansible, work_dir, role_name, test)
             success += 1
 
         if not success:
