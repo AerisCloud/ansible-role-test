@@ -15,7 +15,8 @@ from .framework import TestFramework
 def main(ansible_version, roles_path, role):
     with ContainerManager(docker_client()) as docker:
         framework = TestFramework(docker, role, roles_path, ansible_version)
-        sys.exit(framework.run())
+        res = framework.run()
+    sys.exit(res)
 
 
 if __name__ == '__main__':
