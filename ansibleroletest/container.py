@@ -6,6 +6,13 @@ import urlparse
 OOMKilled, Dead, Paused, Running, Restarting, Stopped = range(1, 7)
 
 
+class ExecuteReturnCodeError(BaseException):
+    def __init__(self, cmd, code, output):
+        super(ExecuteReturnCodeError, self).__init__('%s exited with code %d' % (cmd, code))
+        self.code = code
+        self.output = output
+
+
 class Container(object):
     def __init__(self, client, image, detach=True, **options):
         self._client = client
@@ -65,10 +72,25 @@ class Container(object):
             state['status'] = Restarting
         return state
 
-    def create(self, **options):
+    def content(self, filename):
+        """
+        Kinda crude way to get the content from a file
+        :param filename:
+        :return:
+        """
+        try:
+            return self.execute(['cat', filename])
+        except ExecuteReturnCodeError as e:
+            if e.code != 2:
+                raise
+        return ''
+
+    def create(self, start=False, **options):
         self._props.update(options)
         res = self._client.create_container(**self._props)
         self._props['id'] = res['Id']
+        if start:
+            self.start(**options)
         return res['Id']
 
     def destroy(self, **options):
@@ -82,7 +104,10 @@ class Container(object):
         res = self._client.exec_create(container=self.id, cmd=cmd,
                                        **options)
         out = self._client.exec_start(exec_id=res['Id'])
-        return out, self._client.exec_inspect(exec_id=res['Id'])
+        exec_res = self._client.exec_inspect(exec_id=res['Id'])
+        if exec_res.get('ExitCode') != 0:
+            raise ExecuteReturnCodeError(cmd[0], exec_res.get('ExitCode'), out)
+        return out
 
     def inspect(self, update=False):
         if update:
@@ -114,7 +139,9 @@ class Container(object):
         out = self._client.exec_start(exec_id=res['Id'], stream=True)
         for line in out:
             yield line
-        yield self._client.exec_inspect(exec_id=res['Id'])
+        exec_res = self._client.exec_inspect(exec_id=res['Id'])
+        if exec_res.get('ExitCode') != 0:
+            raise ExecuteReturnCodeError(cmd[0], res.get('ExitCode'), None)
 
     def stop(self):
         self._client.stop(container=self.id)
@@ -133,11 +160,18 @@ class ContainerManager(object):
     def containers(self):
         return self._containers
 
-    def create(self, name, **options):
+    def new(self):
+        return ContainerManager(self._docker)
+
+    def create(self, name, start=False, **options):
         self._containers[name] = Container(self._docker, **options)
+        if start:
+            self._containers[name].start(**options)
         return self._containers[name]
 
     def destroy(self, names=None):
+        if not hasattr(self, '_containers'):
+            return
         if not names:
             names = []
         if not isinstance(names, list):
@@ -146,3 +180,13 @@ class ContainerManager(object):
             if not names or name in names:
                 container.destroy()
                 del self._containers[name]
+
+    def __del__(self):
+        self.destroy()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.destroy()
+
