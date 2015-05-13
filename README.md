@@ -7,6 +7,12 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 
 * docker
 
+## Installation
+
+* Clone repository
+* Run `make dist docker`
+* Either run `venv/bin/ansible-role-test` or `dist/ansible-role-test-<OS>-<arch>`
+
 ## Usage
 
 ```bash
@@ -60,3 +66,7 @@ named `ansible-<distro>:<version>`.
 
 * `centos:6`
 * `centos:7`
+* `debian:wheezy`
+* `debian:jessie`
+* `ubuntu:14.04`
+* `ubuntu:15.04`
