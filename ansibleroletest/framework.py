@@ -158,8 +158,8 @@ class TestFramework(object):
             self.print_header('GIT CLONE [%s]' % self.role)
             branch = None
             if '#' in self.role:
-                role, branch = self.role.split('#')
-            git_cmd = ['git', 'clone', role]
+                self.role, branch = self.role.split('#')
+            git_cmd = ['git', 'clone', self.role]
             if branch:
                 git_cmd += ['-b', branch]
             git_cmd.append(self.role_path)
@@ -168,8 +168,6 @@ class TestFramework(object):
             # role is an ansible galaxy role
             self.print_header('GALAXY [%s]' % self.role)
             self.stream('ansible-galaxy', 'install', self.role)
-
-        #install_role_deps(ansible, role_path)
 
     def stream(self, *cmd):
         if not self.ansible:

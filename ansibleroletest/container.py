@@ -7,7 +7,7 @@ OOMKilled, Dead, Paused, Running, Restarting, Stopped = range(1, 7)
 
 
 class ExecuteReturnCodeError(BaseException):
-    def __init__(self, cmd, code, output):
+    def __init__(self, cmd, code=-1, output=None):
         super(ExecuteReturnCodeError, self).__init__('%s exited with code %d' % (cmd, code))
         self.code = code
         self.output = output
@@ -81,9 +81,7 @@ class Container(object):
         try:
             return self.execute(['cat', filename])
         except ExecuteReturnCodeError as e:
-            if e.code != 2:
-                raise
-        return ''
+            return ''
 
     def create(self, start=False, **options):
         self._props.update(options)
@@ -141,7 +139,7 @@ class Container(object):
             yield line
         exec_res = self._client.exec_inspect(exec_id=res['Id'])
         if exec_res.get('ExitCode') != 0:
-            raise ExecuteReturnCodeError(cmd[0], res.get('ExitCode'), None)
+            raise ExecuteReturnCodeError(cmd[0], exec_res.get('ExitCode'), None)
 
     def stop(self):
         self._client.stop(container=self.id)
