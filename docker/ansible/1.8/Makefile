@@ -1,5 +1,5 @@
 IMAGE=aeriscloud/ansible
-TAGS=1.9 latest
+TAGS=1.8
 
 .PHONY: all
 

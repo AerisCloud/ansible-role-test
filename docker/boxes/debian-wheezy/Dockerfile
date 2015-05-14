@@ -12,6 +12,9 @@ RUN usermod --password XT7/q1XkHlXSs root
 # Create ansible user
 RUN useradd --password XT7/q1XkHlXSs --create-home --groups users ansible
 
+# Install python for ansible
+RUN apt-get install -y python
+
 # Setup sudo
 RUN apt-get install -y sudo
 RUN echo 'ansible	ALL=(ALL)	NOPASSWD: ALL' >> /etc/sudoers
