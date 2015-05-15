@@ -4,5 +4,6 @@ RUN pip install 'ansible >= 1.8.0, < 1.9'
 RUN apt-get update && apt-get install sshpass && rm -rf /var/cache/apt /var/lib/apt/lists
 RUN echo "[defaults]\nhost_key_checking = False" > ~/.ansible.cfg
 RUN mkdir ~/.ssh && echo "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+RUN mkdir /etc/ansible
 
 CMD /bin/bash
