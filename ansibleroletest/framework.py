@@ -15,14 +15,14 @@ class TestFramework(object):
     TYPE_GIT = 'git'
     TYPE_LOCAL = 'local'
 
-    def __init__(self, docker, role, roles_path, ansible_version='latest'):
+    def __init__(self, docker, role, ansible_paths=None, ansible_version='latest'):
         self.ansible = None
         self.docker = docker
         self.role = role
-        self.roles_path = roles_path
         self.work_dir = tempfile.mkdtemp(prefix='ansible-test')
         self.res = {'success':0, 'skip':0, 'failed':0}
         self.ansible_version = ansible_version
+        self.environment = {}
 
         # check the role type
         self.role_name = self.role
@@ -30,8 +30,16 @@ class TestFramework(object):
         self.bindings =  {self.work_dir: '/work'}
         self.type = TestFramework.TYPE_GALAXY
 
-        if roles_path:
-            self.bindings[roles_path] = '/roles'
+        self.ansible_paths = {
+            'roles': None,
+            'library': None,
+            'plugins': {
+                'action': None
+            }
+        }
+        if ansible_paths:
+            self.ansible_paths.update(ansible_paths)
+            self.setup_bindings()
 
         if os.path.isdir(role):
             # role is a folder name, use that
@@ -49,6 +57,7 @@ class TestFramework(object):
 
     def cleanup(self):
         self.print_header('CLEANING TESTS')
+        #del self.docker.containers['ansible']
         for name, container in self.docker.containers.copy().iteritems():
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
@@ -91,12 +100,12 @@ class TestFramework(object):
                 if role_name in installed:
                     continue
 
-                if '.' in role_name:
+                if '.' in role_name and not os.path.exists(os.path.join(self.ansible_paths['roles'], role_name)):
                     self.print_header('DEPENDENCY: [%s]' % role_name)
                     self.stream('ansible-galaxy', 'install', role_name)
                 else:
                     self.print_header('LOCAL DEPENDENCY: [%s]' % role_name)
-                    if not self.roles_path:
+                    if not self.ansible_paths['roles']:
                         raise ImportError('No roles path, please set --roles-path')
                     src_path = os.path.join('/roles', role_name)
                     target_path = '/etc/ansible/roles/{0}'.format(role_name)
@@ -108,17 +117,25 @@ class TestFramework(object):
 
                 installed.append(role_name)
 
-    def print_header(self, text):
+    @staticmethod
+    def print_header(text):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
-    def run(self):
+    def run(self, extra_vars=None, limit=None, skip_tags=None,
+            tags=None, verbosity=None):
         try:
             self.print_header('TESTS [%s]' % self.role_name)
             self.setup_ansible()
             self.install_role_deps()
 
             for test in self.tests():
-                test.run()
+                test.run(
+                    extra_vars=extra_vars,
+                    limit=limit,
+                    skip_tags=skip_tags,
+                    tags=tags,
+                    verbosity=verbosity
+                )
                 self.res['success'] += 1
 
             if self.res['success'] == 0:
@@ -150,7 +167,9 @@ class TestFramework(object):
         self.print_header('STARTING ANSIBLE')
 
         self.ansible = self.docker.create('ansible', tty=True,
-                                          image='wizcorp/ansible:' + self.ansible_version)
+                                          image='aeriscloud/ansible:' + self.ansible_version,
+                                          environment=self.environment)
+
         self.ansible.start(binds=self.bindings)
         click.secho('ok: [%s]' % self.ansible.image, fg='green')
 
@@ -168,6 +187,17 @@ class TestFramework(object):
             # role is an ansible galaxy role
             self.print_header('GALAXY [%s]' % self.role)
             self.stream('ansible-galaxy', 'install', self.role)
+
+    def setup_bindings(self):
+        if self.ansible_paths['roles']:
+            self.bindings[self.ansible_paths['roles']] = '/roles'
+
+        if self.ansible_paths['library']:
+            self.bindings[self.ansible_paths['library']] = '/usr/share/ansible/library'
+            self.environment['ANSIBLE_LIBRARY'] = '/usr/share/ansible/library'
+
+        if self.ansible_paths['plugins']['action']:
+            self.bindings[self.ansible_paths['plugins']['action']] = '/usr/share/ansible_plugins/action_plugins'
 
     def stream(self, *cmd):
         if not self.ansible:

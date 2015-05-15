@@ -2,6 +2,15 @@ import click
 import os
 import yaml
 
+DEFAULT_CONTAINERS = {
+    'centos6': 'centos:6',
+    'centos7': 'centos:7',
+    'debian-wheezy': 'debian:wheezy',
+    'debian-jessie': 'debian:jessie',
+    'ubuntu-lts': 'ubuntu:lts',
+    'ubuntu15': 'ubuntu:15.04'
+}
+
 
 class Test(object):
     _counter = 0
@@ -38,16 +47,38 @@ class Test(object):
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
 
-    def run(self):
+    def run(self, extra_vars=None, limit=None, skip_tags=None,
+            tags=None, verbosity=None):
         try:
             self.framework.print_header('TEST [%s]' % self.name)
             self.setup()
 
             self.framework.print_header('RUNNING TESTS')
-            self.framework.stream(
-                'ansible-playbook', '-i', os.path.join('/work', self.inventory_file),
-                os.path.join('/work', self.playbook_file)
-            )
+
+            ansible_cmd = [
+                'ansible-playbook',
+                '-i', os.path.join('/work', self.inventory_file)
+            ]
+
+            if extra_vars:
+                for extra_var in extra_vars:
+                    ansible_cmd += ['--extra-vars', extra_var]
+
+            if limit:
+                ansible_cmd += ['--limit', limit]
+
+            if skip_tags:
+                ansible_cmd += ['--skip-tags', skip_tags]
+
+            if tags:
+                ansible_cmd += ['--tags', tags]
+
+            if verbosity:
+                ansible_cmd.append('-%s' % ('v' * verbosity))
+
+            ansible_cmd.append(os.path.join('/work', self.playbook_file))
+
+            self.framework.stream(*ansible_cmd)
         finally:
             self.cleanup()
 
@@ -72,7 +103,10 @@ class Test(object):
     def start_containers(self):
         self.framework.print_header('STARTING CONTAINERS')
 
+        if 'containers' not in self.test:
+            self.test['containers'] = DEFAULT_CONTAINERS
+
         for name, image in self.test['containers'].iteritems():
             full_image = 'aeriscloud/ansible-%s' % image
-            self.docker.create(name, image=full_image).start()
+            self.docker.create(name, image=full_image).start(privileged=True)
             click.secho('ok: [%s]' % full_image, fg='green')
