@@ -8,34 +8,39 @@ from .docker import client as docker_client
 from .framework import TestFramework
 
 
-@click.command(context_settings={'help_option_names':['-h', '--help']})
+@click.command(context_settings={'help_option_names': ['-h', '--help']})
 @click.option('--roles-path', default=None,
               metavar='ROLES_PATH',
-              help='search path for non-galaxy roles that might be required as dependencies')
+              help='Search path for non-galaxy roles that might be required as dependencies')
 @click.option('--library-path', default=None,
               metavar='LIBRARY_PATH',
-              help='search path for custom ansible modules')
+              help='Search path for custom ansible modules',
+              envvar='ANSIBLE_LIBRARY')
 @click.option('--action-plugins-path', default=None,
               metavar='ACTION_PLUGINS_PATH',
-              help='search path for custom action plugins')
+              help='Search path for custom action plugins',
+              envvar='ANSIBLE_ACTION_PLUGINS')
 @click.option('-e', '--extra-vars', multiple=True,
               metavar='EXTRA_VARS',
-              help='set additional variables as key=value or YAML/JSON')
+              help='Set additional variables as key=value or YAML/JSON')
 @click.option('-l', '--limit',
               metavar='SUBSET',
-              help='limit selected hosts to a given pattern')
+              help='Limit selected hosts to a given pattern')
 @click.option('--skip-tags', default=None,
               metavar='SKIP_TAGS',
-              help='only run plays and tasks whose tags do not match these '
+              help='Only run plays and tasks whose tags do not match these '
                    'values')
 @click.option('-t', '--tags', default=None,
               metavar='TAGS',
-              help='only run plays and tasks tagged with these values')
+              help='Only run plays and tasks tagged with these values')
 @click.option('-v', 'verbosity', count=True,
-              help='verbose mode (-vvv for more, -vvvv to enable connection '
+              help='Verbose mode (-vvv for more, -vvvv to enable connection '
                    'debugging)')
-@click.option('--ansible-version', default='latest')
-@click.argument('role')
+@click.option('--ansible-version', default='latest',
+              metavar='ANSIBLE_VERSION',
+              help='The ansible version to use (either 1.8, 1.9 or latest)',
+              type=click.Choice(['1.8', '1.9', 'latest']))
+@click.argument('role', default=None)
 def main(role,
          # path args
          roles_path, library_path, action_plugins_path,
@@ -43,6 +48,12 @@ def main(role,
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
          ansible_version):
+    """
+    ansible-role-test is a docker based testing utility for ansible roles.
+
+    ROLE can be either be a local path, a git repository or an ansible-galaxy
+    role name.
+    """
     with ContainerManager(docker_client()) as docker:
         ansible_paths = {
             'roles': roles_path,
