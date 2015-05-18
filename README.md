@@ -10,7 +10,7 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 ## Installation
 
 * Clone repository
-* Run `make dist docker`
+* Run `make dist`
 * Either run `venv/bin/ansible-role-test` or `dist/ansible-role-test-<OS>-<arch>`
 
 ## Usage
@@ -70,3 +70,8 @@ named `ansible-<distro>:<version>`.
 * `debian:jessie`
 * `ubuntu:14.04`
 * `ubuntu:15.04`
+
+Please check [`aeriscloud@docker`](https://registry.hub.docker.com/repos/aeriscloud/) for
+the current list of available images.
+
+If you wish to build all the images locally, you can run `make docker`.
