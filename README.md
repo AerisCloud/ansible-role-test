@@ -37,6 +37,7 @@ looks like that one:
 name: "My test name"
 # The containers you will use for this test, you could for example spawn a debian
 # centos, ubuntu, etc... and run the tests on "all" hosts
+# If skipped, tests will be run on every containers available
 containers:
   centos6: 'centos:6'
   centos7: 'centos:7'

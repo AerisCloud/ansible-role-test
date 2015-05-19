@@ -9,6 +9,8 @@ from .framework import TestFramework
 
 
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
+@click.command(context_settings={'help_option_names':['-h', '--help']})
+# path options
 @click.option('--roles-path', default=None,
               metavar='ROLES_PATH',
               help='Search path for non-galaxy roles that might be required as dependencies')
@@ -20,6 +22,7 @@ from .framework import TestFramework
               metavar='ACTION_PLUGINS_PATH',
               help='Search path for custom action plugins',
               envvar='ANSIBLE_ACTION_PLUGINS')
+# ansible options
 @click.option('-e', '--extra-vars', multiple=True,
               metavar='EXTRA_VARS',
               help='Set additional variables as key=value or YAML/JSON')
@@ -36,18 +39,20 @@ from .framework import TestFramework
 @click.option('-v', 'verbosity', count=True,
               help='Verbose mode (-vvv for more, -vvvv to enable connection '
                    'debugging)')
+# extra
 @click.option('--ansible-version', default='latest',
               metavar='ANSIBLE_VERSION',
               help='The ansible version to use (either 1.8, 1.9 or latest)',
               type=click.Choice(['1.8', '1.9', 'latest']))
-@click.argument('role', default=None)
+@click.option('--privileged', is_flag=True, default=False)
+@click.argument('role')
 def main(role,
          # path args
          roles_path, library_path, action_plugins_path,
          # ansible-playbook args
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
-         ansible_version):
+         ansible_version, privileged):
     """
     ansible-role-test is a docker based testing utility for ansible roles.
 
@@ -68,7 +73,8 @@ def main(role,
             limit=limit,
             skip_tags=skip_tags,
             tags=tags,
-            verbosity=verbosity
+            verbosity=verbosity,
+            privileged=privileged
         )
     sys.exit(res)
 

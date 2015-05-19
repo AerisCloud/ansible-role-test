@@ -4,19 +4,14 @@ FROM centos:7
 MAINTAINER Christophe Robin <crobin@nekoo.com>
 
 # Updating container (recommended by image provider)
-RUN yum -y update
+# Also provide dbus (installed by default on centos7 and used by some packages)
+RUN yum -y update && yum install -y dbus
 
 # Change root password to ansible
 RUN usermod --password XT7/q1XkHlXSs root
 
 # Create ansible user
 RUN useradd --password XT7/q1XkHlXSs --create-home --groups users,wheel ansible
-#RUN mkdir /home/ansible/.ssh
-#RUN chown ansible:ansible /home/ansible/.ssh
-#RUN chmod 0700 /home/ansible/.ssh
-#ADD insecure_key.pub /home/ansible/.ssh/authorized_keys
-#RUN chown ansible:ansible /home/ansible/.ssh/authorized_keys
-#RUN chmod 0600 /home/ansible/.ssh/authorized_keys
 
 # Setup sudo
 RUN yum -y install sudo
