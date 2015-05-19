@@ -3,6 +3,9 @@
 FROM debian:8
 MAINTAINER Christophe Robin <crobin@nekoo.com>
 
+# Replace httpredir with cloudfront (httpredir is broken from Japan)
+RUN sed -i 's/httpredir.debian.org/cloudfront.debian.net/' /etc/apt/sources.list
+
 # Updating container (recommended by image provider)
 RUN apt-get update && apt-get upgrade -y
 
@@ -25,6 +28,9 @@ RUN /etc/init.d/ssh start && /etc/init.d/ssh stop
 
 # Cleanup
 RUN apt-get clean
+
+# Fix broken packages
+RUN echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
 
 # Expose SSH
 EXPOSE 22

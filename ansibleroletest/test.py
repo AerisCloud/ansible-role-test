@@ -48,10 +48,10 @@ class Test(object):
             click.secho('ok: [%s]' % container.image, fg='green')
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None):
+            tags=None, verbosity=None, privileged=False):
         try:
             self.framework.print_header('TEST [%s]' % self.name)
-            self.setup()
+            self.setup(limit, privileged)
 
             self.framework.print_header('RUNNING TESTS')
 
@@ -82,9 +82,9 @@ class Test(object):
         finally:
             self.cleanup()
 
-    def setup(self):
+    def setup(self, limit=None, privileged=False):
         self.setup_playbook()
-        self.start_containers()
+        self.start_containers(limit, privileged)
         self.setup_inventory()
 
     def setup_playbook(self):
@@ -100,13 +100,19 @@ class Test(object):
         with open(os.path.join(self.framework.work_dir, self.inventory_file), 'w') as fd:
             fd.write(self.inventory)
 
-    def start_containers(self):
+    def start_containers(self, limit=None, privileged=False):
         self.framework.print_header('STARTING CONTAINERS')
 
         if 'containers' not in self.test:
             self.test['containers'] = DEFAULT_CONTAINERS
 
+        # do not start containers that do not match the given limit
+        if limit and limit != 'all':
+            unwanted = set(self.test['containers']) - set(limit.split(','))
+            for unwanted_container in unwanted:
+                del self.test['containers'][unwanted_container]
+
         for name, image in self.test['containers'].iteritems():
             full_image = 'aeriscloud/ansible-%s' % image
-            self.docker.create(name, image=full_image).start(privileged=True)
+            self.docker.create(name, image=full_image).start(privileged=privileged)
             click.secho('ok: [%s]' % full_image, fg='green')

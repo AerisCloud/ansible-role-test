@@ -100,7 +100,9 @@ class TestFramework(object):
                 if role_name in installed:
                     continue
 
-                if '.' in role_name and not os.path.exists(os.path.join(self.ansible_paths['roles'], role_name)):
+                if '.' in role_name and (
+                            not self.ansible_paths['roles'] or
+                            not os.path.exists(os.path.join(self.ansible_paths['roles'], role_name))):
                     self.print_header('DEPENDENCY: [%s]' % role_name)
                     self.stream('ansible-galaxy', 'install', role_name)
                 else:
@@ -122,7 +124,7 @@ class TestFramework(object):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None):
+            tags=None, verbosity=None, privileged=False):
         try:
             self.print_header('TESTS [%s]' % self.role_name)
             self.setup_ansible()
@@ -134,7 +136,8 @@ class TestFramework(object):
                     limit=limit,
                     skip_tags=skip_tags,
                     tags=tags,
-                    verbosity=verbosity
+                    verbosity=verbosity,
+                    privileged=privileged
                 )
                 self.res['success'] += 1
 
