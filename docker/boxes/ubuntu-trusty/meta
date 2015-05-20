@@ -1,0 +1,2 @@
+IMAGE=aeriscloud/ansible-ubuntu
+TAGS=14.04 trusty lts

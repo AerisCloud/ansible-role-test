@@ -1,9 +1,1 @@
-IMAGE=aeriscloud/ansible
-TAGS=1.9 latest
-
-.PHONY: all
-
-all: $(TAGS)
-
-$(TAGS):
-	docker build -t $(IMAGE):$@ .
+../Makefile

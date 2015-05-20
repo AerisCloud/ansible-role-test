@@ -1,8 +1,9 @@
 DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile))
+DOCKER_PULL = $(patsubst %,%-pull,$(DOCKER))
 TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
 VIRTUALENV = "virtualenv"
 
-.PHONY: clean build all docker $(DOCKER)
+.PHONY: clean build all docker docker-pull $(DOCKER) $(DOCKER_PULL)
 
 all: dist
 
@@ -30,5 +31,10 @@ venv/bin/pyinstaller:
 # build the necessary docker images
 docker: $(DOCKER)
 
+docker-pull: $(DOCKER_PULL)
+
 $(DOCKER):
 	make -C $@
+
+$(DOCKER_PULL):
+	make -C $(patsubst %-pull,%,$@) pull

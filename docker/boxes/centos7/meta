@@ -1,0 +1,2 @@
+IMAGE=aeriscloud/ansible-centos
+TAGS=7 latest

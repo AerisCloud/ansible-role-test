@@ -1,0 +1,2 @@
+IMAGE=aeriscloud/ansible
+TAGS=1.8
