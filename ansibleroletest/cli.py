@@ -1,12 +1,14 @@
 from __future__ import print_function
 
 import click
+import logging
 import sys
 
 from .container import ContainerManager
 from .docker import client as docker_client
 from .framework import TestFramework
 
+logging.captureWarnings(True)
 
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
 # path options

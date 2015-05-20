@@ -1,15 +1,28 @@
+import appdirs
 import click
 import giturlparse
 import os
 import shutil
 import six
 import sys
-import tempfile
 import traceback
+import uuid
 import yaml
 
 from .container import ExecuteReturnCodeError
 from .test import Test
+
+
+def mktmpdir():
+    """
+    Due to OSX and boot2docker, I can't use the tempdir module as /tmp cannot
+    be mounted in boot2docker (only /Users/<user> is available)
+    """
+    base_dir = appdirs.user_cache_dir('ansible_role_test', 'aeriscloud')
+    tmp_dir = os.path.join(base_dir, uuid.uuid4().hex)
+    os.makedirs(tmp_dir)
+    return tmp_dir
+
 
 class TestFramework(object):
     TYPE_GALAXY = 'galaxy'
@@ -20,7 +33,7 @@ class TestFramework(object):
         self.ansible = None
         self.docker = docker
         self.role = role
-        self.work_dir = tempfile.mkdtemp(prefix='ansible-test')
+        self.work_dir = mktmpdir()
         self.res = {'success':0, 'skip':0, 'failed':0}
         self.ansible_version = ansible_version
         self.environment = {}

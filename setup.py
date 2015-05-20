@@ -4,11 +4,16 @@ from setuptools import setup, find_packages
 from ansibleroletest import __version__, __author__, __email__, __license__, __url__
 
 install_requires = [
+    'appdirs >= 1.4.0, < 2',
     'click == 4.0',
     'docker-py >= 1.2.0, < 1.3',
     'giturlparse.py == 0.0.5',
     'PyYAML >= 3.10, < 4',
-    'six >= 1.9.0, < 2'
+    'six >= 1.9.0, < 2',
+    # fix urllib warning on OSX
+    'pyopenssl',
+    'ndg-httpsclient',
+    'pyasn1'
 ]
 
 setup(
