@@ -1,5 +1,5 @@
-DOCKERFILES = $(shell find docker -name Makefile)
-DOCKER = $(DOCKERFILES:/Makefile=) 
+DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile))
+TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
 
 .PHONY: clean build all docker $(DOCKER)
 
@@ -17,7 +17,7 @@ dev: venv
 
 dist: build venv/bin/pyinstaller
 	venv/bin/pyinstaller --clean --onefile bin/ansible-role-test
-	mv dist/ansible-role-test "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
+	mv dist/ansible-role-test $(TARGET)
 
 venv:
 	virtualenv2 venv
