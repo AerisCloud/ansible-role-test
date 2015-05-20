@@ -2,6 +2,7 @@ import click
 import giturlparse
 import os
 import shutil
+import six
 import sys
 import tempfile
 import traceback
@@ -57,8 +58,7 @@ class TestFramework(object):
 
     def cleanup(self):
         self.print_header('CLEANING TESTS')
-        #del self.docker.containers['ansible']
-        for name, container in self.docker.containers.copy().iteritems():
+        for name, container in six.iteritems(self.docker.containers):
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
 

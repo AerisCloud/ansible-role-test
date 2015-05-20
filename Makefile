@@ -1,5 +1,6 @@
-DOCKERFILES = $(shell find docker -name Makefile)
-DOCKER = $(DOCKERFILES:/Makefile=) 
+DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile))
+TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
+VIRTUALENV = "virtualenv"
 
 .PHONY: clean build all docker $(DOCKER)
 
@@ -13,14 +14,14 @@ build: venv
 
 # same as build but use symbolic links
 dev: venv
-	venv/bin/pip install -e .
+	venv/bin/pip install --upgrade -e .
 
 dist: build venv/bin/pyinstaller
 	venv/bin/pyinstaller --clean --onefile bin/ansible-role-test
-	mv dist/ansible-role-test "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
+	mv dist/ansible-role-test $(TARGET)
 
 venv:
-	virtualenv2 venv
+	$(VIRTUALENV) venv
 
 # pypi version is super old, use github version instead
 venv/bin/pyinstaller:

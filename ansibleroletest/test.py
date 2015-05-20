@@ -1,6 +1,9 @@
 import click
 import os
+import six
 import yaml
+
+from .container import ExecuteReturnCodeError
 
 DEFAULT_CONTAINERS = {
     'centos6': 'centos:6',
@@ -29,7 +32,7 @@ class Test(object):
     @property
     def inventory(self):
         inventory = '[test]\n'
-        for name, container in self.docker.containers.iteritems():
+        for name, container in six.iteritems(self.docker.containers):
             inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
                          'ansible_ssh_pass=ansible\n' \
                 .format(name, container.internal_ip)
@@ -43,7 +46,7 @@ class Test(object):
 
     def cleanup(self):
         self.framework.print_header('CLEANING TEST CONTAINERS')
-        for name, container in self.docker.containers.copy().iteritems():
+        for name, container in six.iteritems(self.docker.containers):
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
 
@@ -79,6 +82,8 @@ class Test(object):
             ansible_cmd.append(os.path.join('/work', self.playbook_file))
 
             self.framework.stream(*ansible_cmd)
+        except ExecuteReturnCodeError as e:
+            click.secho(str(e), fg='red')
         finally:
             self.cleanup()
 
@@ -112,7 +117,7 @@ class Test(object):
             for unwanted_container in unwanted:
                 del self.test['containers'][unwanted_container]
 
-        for name, image in self.test['containers'].iteritems():
+        for name, image in six.iteritems(self.test['containers']):
             full_image = 'aeriscloud/ansible-%s' % image
             self.docker.create(name, image=full_image).start(privileged=privileged)
             click.secho('ok: [%s]' % full_image, fg='green')

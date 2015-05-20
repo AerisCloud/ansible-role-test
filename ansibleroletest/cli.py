@@ -9,7 +9,6 @@ from .framework import TestFramework
 
 
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
-@click.command(context_settings={'help_option_names':['-h', '--help']})
 # path options
 @click.option('--roles-path', default=None,
               metavar='ROLES_PATH',
