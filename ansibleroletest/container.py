@@ -1,7 +1,7 @@
-from __future__ import unicode_literals
-from __future__ import absolute_import
+from __future__ import unicode_literals, absolute_import
 
-import urlparse
+import six
+from six.moves.urllib.parse import urlparse
 
 OOMKilled, Dead, Paused, Running, Restarting, Stopped = range(1, 7)
 
@@ -30,7 +30,7 @@ class Container(object):
             return '0.0.0.0'
 
         if not self._host_ip:
-            o = urlparse.urlparse(self._client.base_url)
+            o = urlparse(self._client.base_url)
             self._host_ip = o.hostname
 
         return self._host_ip
@@ -105,7 +105,7 @@ class Container(object):
         exec_res = self._client.exec_inspect(exec_id=res['Id'])
         if exec_res.get('ExitCode') != 0:
             raise ExecuteReturnCodeError(cmd[0], exec_res.get('ExitCode'), out)
-        return out
+        return out.decode('utf-8')
 
     def inspect(self, update=False):
         if update:
@@ -136,7 +136,7 @@ class Container(object):
                                        **options)
         out = self._client.exec_start(exec_id=res['Id'], stream=True)
         for line in out:
-            yield line
+            yield line.decode('utf-8')
         exec_res = self._client.exec_inspect(exec_id=res['Id'])
         if exec_res.get('ExitCode') != 0:
             raise ExecuteReturnCodeError(cmd[0], exec_res.get('ExitCode'), None)
@@ -156,7 +156,7 @@ class ContainerManager(object):
 
     @property
     def containers(self):
-        return self._containers
+        return self._containers.copy()
 
     def new(self):
         return ContainerManager(self._docker)
@@ -174,7 +174,7 @@ class ContainerManager(object):
             names = []
         if not isinstance(names, list):
             names = [names]
-        for name, container in self._containers.copy().iteritems():
+        for name, container in six.iteritems(self.containers):
             if not names or name in names:
                 container.destroy()
                 del self._containers[name]

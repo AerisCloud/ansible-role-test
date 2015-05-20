@@ -7,7 +7,8 @@ install_requires = [
     'click == 4.0',
     'docker-py >= 1.2.0, < 1.3',
     'giturlparse.py == 0.0.5',
-    'PyYAML >= 3.10, < 4'
+    'PyYAML >= 3.10, < 4',
+    'six >= 1.9.0, < 2'
 ]
 
 dev_requires = [
