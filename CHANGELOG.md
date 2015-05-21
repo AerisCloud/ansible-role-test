@@ -2,13 +2,19 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [unreleased] - 
+## 0.0.4 - [unreleased]
 ### Added
-* Pull images that are not available locally
+* Pull images that are not available locally during tests
+* New docker-pull target in the Makefile
 
 ### Changed
 * Can customize the virtualenv binary in the Makefile
 * Bindings on the ansible box are now read-only
+* Merge all docker Makefiles in a single one
+
+### Fixed
+* Use a temporary dir in the user path (boot2docker support)
+* Annoying log output on osx about urllib
 
 ## [0.0.3] - 2015-05-20
 ### Added
