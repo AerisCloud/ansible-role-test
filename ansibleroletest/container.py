@@ -14,6 +14,8 @@ class ExecuteReturnCodeError(BaseException):
 
 
 class Container(object):
+    _images = None
+
     def __init__(self, client, image, detach=True, **options):
         self._client = client
         self._props = {
@@ -23,6 +25,7 @@ class Container(object):
         self._props.update(options)
         self._host_ip = None
         self._inspected = False
+        self._pulled = False
 
     @property
     def host_ip(self):
@@ -46,8 +49,22 @@ class Container(object):
         return self._props['image']
 
     @property
+    def images(self):
+        if not Container._images:
+            Container._images = {
+                tag: image
+                for image in self._client.images()
+                for tag in image['RepoTags']
+            }
+        return Container._images
+
+    @property
     def internal_ip(self):
         return self.inspect()['NetworkSettings']['IPAddress']
+
+    @property
+    def pulled(self):
+        return self._pulled
 
     @property
     def state(self):
@@ -83,7 +100,20 @@ class Container(object):
         except ExecuteReturnCodeError as e:
             return ''
 
-    def create(self, start=False, **options):
+    def create(self, start=False, progress=None, **options):
+        if self.image not in self.images:
+            # pull image from repo
+            if hasattr(progress, '__call__'):
+                for line in self._client.pull(self.image, insecure_registry=True, stream=True):
+                    progress(line)
+                progress('finished')
+            else:
+                self._client.pull(self.image)
+
+            # reset image list on success
+            Container._images = None
+            self._pulled = True
+
         self._props.update(options)
         res = self._client.create_container(**self._props)
         self._props['id'] = res['Id']
@@ -123,9 +153,9 @@ class Container(object):
     def remove(self, **options):
         self._client.remove_container(container=self.id, **options)
 
-    def start(self, **options):
+    def start(self, progress=None, **options):
         if not self.id:
-            self.create()
+            self.create(progress=progress)
 
         options['container'] = self.id
         self._client.start(**options)
@@ -161,10 +191,10 @@ class ContainerManager(object):
     def new(self):
         return ContainerManager(self._docker)
 
-    def create(self, name, start=False, **options):
+    def create(self, name, progress=None, start=False, **options):
         self._containers[name] = Container(self._docker, **options)
         if start:
-            self._containers[name].start(**options)
+            self._containers[name].start(progress=progress, **options)
         return self._containers[name]
 
     def destroy(self, names=None):

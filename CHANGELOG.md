@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [unreleased] - 
+### Added
+* Pull images that are not available locally
+
+### Changed
+* Can customize the virtualenv binary in the Makefile
+* Bindings on the ansible box are now read-only
+
 ## [0.0.3] - 2015-05-20
 ### Added
 * Added changelog

@@ -11,6 +11,7 @@ import yaml
 
 from .container import ExecuteReturnCodeError
 from .test import Test
+from .utils import pull_image_progress
 
 
 def mktmpdir():
@@ -34,14 +35,14 @@ class TestFramework(object):
         self.docker = docker
         self.role = role
         self.work_dir = mktmpdir()
-        self.res = {'success':0, 'skip':0, 'failed':0}
+        self.res = {'success': 0, 'skip': 0, 'failed': 0}
         self.ansible_version = ansible_version
         self.environment = {}
 
         # check the role type
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
-        self.bindings =  {self.work_dir: '/work'}
+        self.bindings = {self.work_dir: {'bind': '/work', 'ro': True}}
         self.type = TestFramework.TYPE_GALAXY
 
         self.ansible_paths = {
@@ -59,7 +60,10 @@ class TestFramework(object):
             # role is a folder name, use that
             self.role_name = os.path.basename(role)
             self.role_path = '/etc/ansible/roles/{0}'.format(self.role_name)
-            self.bindings[os.path.realpath(self.role)] = self.role_path
+            self.bindings[os.path.realpath(self.role)] = {
+                'bind': self.role_path,
+                'ro': True
+            }
             self.type = TestFramework.TYPE_LOCAL
         elif role.endswith('.git') or '.git#' in role:
             # role is a git repository
@@ -186,8 +190,13 @@ class TestFramework(object):
                                           image='aeriscloud/ansible:' + self.ansible_version,
                                           environment=self.environment)
 
-        self.ansible.start(binds=self.bindings)
-        click.secho('ok: [%s]' % self.ansible.image, fg='green')
+        self.ansible.start(binds=self.bindings,
+                           progress=pull_image_progress())
+
+        if self.ansible.pulled:
+            click.secho('pulled: [%s]' % self.ansible.image, fg='yellow')
+        else:
+            click.secho('ok: [%s]' % self.ansible.image, fg='green')
 
         if self.type == TestFramework.TYPE_GIT:
             self.print_header('GIT CLONE [%s]' % self.role)
@@ -206,14 +215,23 @@ class TestFramework(object):
 
     def setup_bindings(self):
         if self.ansible_paths['roles']:
-            self.bindings[self.ansible_paths['roles']] = '/roles'
+            self.bindings[self.ansible_paths['roles']] = {
+                'bind': '/roles',
+                'ro': True
+            }
 
         if self.ansible_paths['library']:
-            self.bindings[self.ansible_paths['library']] = '/usr/share/ansible/library'
+            self.bindings[self.ansible_paths['library']] = {
+                'bind': '/usr/share/ansible/library',
+                'ro': True
+            }
             self.environment['ANSIBLE_LIBRARY'] = '/usr/share/ansible/library'
 
         if self.ansible_paths['plugins']['action']:
-            self.bindings[self.ansible_paths['plugins']['action']] = '/usr/share/ansible_plugins/action_plugins'
+            self.bindings[self.ansible_paths['plugins']['action']] = {
+                'bind': '/usr/share/ansible_plugins/action_plugins',
+                'ro': True
+            }
 
     def stream(self, *cmd):
         if not self.ansible:
@@ -230,7 +248,7 @@ class TestFramework(object):
                     ['ls', '-1', os.path.join(self.role_path, 'tests')]
                 ).split('\n')
                 if test.strip() and test.strip().endswith('.yml')
-            ]
+                ]
         except ExecuteReturnCodeError as e:
             if e.code != 2:
                 raise

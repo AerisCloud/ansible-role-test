@@ -6,6 +6,7 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 ## Requirements
 
 * docker
+* python 2.7 or 3.x
 
 ## Installation
 

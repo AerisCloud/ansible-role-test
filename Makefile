@@ -1,7 +1,8 @@
 DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile))
 DOCKER_PULL = $(patsubst %,%-pull,$(DOCKER))
 TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
-VIRTUALENV = "virtualenv"
+
+VIRTUALENV ?= virtualenv
 
 .PHONY: clean build all docker docker-pull $(DOCKER) $(DOCKER_PULL)
 
@@ -17,7 +18,9 @@ build: venv
 dev: venv
 	venv/bin/pip install --upgrade -e .
 
-dist: build venv/bin/pyinstaller
+dist: $(TARGET)
+
+$(TARGET): build venv/bin/pyinstaller
 	venv/bin/pyinstaller --clean --onefile bin/ansible-role-test
 	mv dist/ansible-role-test $(TARGET)
 

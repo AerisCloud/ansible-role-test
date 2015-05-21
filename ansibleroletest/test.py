@@ -4,6 +4,7 @@ import six
 import yaml
 
 from .container import ExecuteReturnCodeError
+from.utils import pull_image_progress
 
 DEFAULT_CONTAINERS = {
     'centos6': 'centos:6',
@@ -119,5 +120,8 @@ class Test(object):
 
         for name, image in six.iteritems(self.test['containers']):
             full_image = 'aeriscloud/ansible-%s' % image
-            self.docker.create(name, image=full_image).start(privileged=privileged)
+            self.docker.create(name, image=full_image).start(
+                privileged=privileged,
+                progress=pull_image_progress()
+            )
             click.secho('ok: [%s]' % full_image, fg='green')

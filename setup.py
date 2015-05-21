@@ -8,12 +8,9 @@ install_requires = [
     'click == 4.0',
     'docker-py >= 1.2.0, < 1.3',
     'giturlparse.py == 0.0.5',
+    'humanize >= 0.5, < 0.6',
     'PyYAML >= 3.10, < 4',
-    'six >= 1.9.0, < 2',
-    # fix urllib warning on OSX
-    'pyopenssl',
-    'ndg-httpsclient',
-    'pyasn1'
+    'six >= 1.9.0, < 2'
 ]
 
 setup(
