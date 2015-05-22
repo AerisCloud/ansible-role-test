@@ -3,6 +3,7 @@ from __future__ import print_function
 import click
 import logging
 import os
+import six
 import sys
 import yaml
 
@@ -88,7 +89,7 @@ def main(role,
             }
         }
 
-        ansible_paths.update(_load_config(config))
+        _load_config(ansible_paths, config)
 
         framework = TestFramework(docker, role, ansible_paths, ansible_version)
         res = framework.run(
@@ -102,22 +103,22 @@ def main(role,
     sys.exit(res)
 
 
-def _load_config(config_file=None):
+def _load_config(conf, config_file=None):
     if not config_file:
-        return {}
+        return
 
     base = os.path.dirname(config_file.name)
-
-    def _fix_path(obj):
-        for k, v in obj.items():
-            if isinstance(v, dict):
-                _fix_path(v)
-            else:
-                obj[k] = os.path.join(base, v)
-
     content = yaml.load(config_file)
-    _fix_path(content)
-    return content
+
+    # merge both objects if the original value is none
+    def _update(obj_from, obj_to):
+        for k, v in six.iteritems(obj_to):
+            if isinstance(v, dict):
+                _update(obj_from[k], v)
+            elif v is None and k in obj_from and obj_from[k]:
+                obj_to[k] = os.path.join(base, obj_from[k])
+
+    _update(content, conf)
 
 if __name__ == '__main__':
     main()

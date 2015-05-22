@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## x.x.x - [unreleased]
+### Changed
+* Flags now override the config, so it is possible to so things such as
+  `-c config.yml --roles-path=/path/to/roles` and have the --roles-path
+  override the config
+
+### Fixed
+* A bug when not all paths are specified when a config file is used
 
 ## [0.0.4] - 2015-05-22
 ### Added
