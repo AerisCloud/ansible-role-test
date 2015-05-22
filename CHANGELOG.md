@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## 0.0.4 - [unreleased]
+## [0.0.4] - 2015-05-22
 ### Added
 * Pull images that are not available locally during tests
 * New docker-pull target in the Makefile
@@ -49,7 +49,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Initial version
 
-[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...HEAD
+[0.0.4]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/AerisCloud/ansible-role-test/tree/v0.0.1
