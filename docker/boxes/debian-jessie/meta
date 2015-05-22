@@ -1,0 +1,2 @@
+IMAGE=aeriscloud/ansible-debian
+TAGS=8 jessie latest

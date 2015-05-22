@@ -1,0 +1,2 @@
+IMAGE=aeriscloud/ansible-ubuntu
+TAGS=15.04 vivid latest

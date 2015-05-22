@@ -1,34 +1,53 @@
+import appdirs
 import click
 import giturlparse
 import os
 import shutil
 import six
 import sys
-import tempfile
 import traceback
+import uuid
 import yaml
 
 from .container import ExecuteReturnCodeError
 from .test import Test
+from .utils import pull_image_progress
+
+
+def mktmpdir():
+    """
+    Due to OSX and boot2docker, I can't use the tempdir module as /tmp cannot
+    be mounted in boot2docker (only /Users/<user> is available)
+    """
+    base_dir = appdirs.user_cache_dir('ansible_role_test', 'aeriscloud')
+    tmp_dir = os.path.join(base_dir, uuid.uuid4().hex)
+    os.makedirs(tmp_dir)
+    return tmp_dir
+
 
 class TestFramework(object):
+    """
+    This is our test framework, it takes care of creating the ansible images
+    and setting up the role and it's dependencies, modules, etc...
+    """
     TYPE_GALAXY = 'galaxy'
     TYPE_GIT = 'git'
     TYPE_LOCAL = 'local'
 
-    def __init__(self, docker, role, ansible_paths=None, ansible_version='latest'):
+    def __init__(self, docker, role,
+                 ansible_paths=None, ansible_version='latest'):
         self.ansible = None
         self.docker = docker
         self.role = role
-        self.work_dir = tempfile.mkdtemp(prefix='ansible-test')
-        self.res = {'success':0, 'skip':0, 'failed':0}
+        self.work_dir = mktmpdir()
+        self.res = {'success': 0, 'skip': 0, 'failed': 0}
         self.ansible_version = ansible_version
         self.environment = {}
 
         # check the role type
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
-        self.bindings =  {self.work_dir: '/work'}
+        self.bindings = {self.work_dir: {'bind': '/work', 'ro': True}}
         self.type = TestFramework.TYPE_GALAXY
 
         self.ansible_paths = {
@@ -44,9 +63,13 @@ class TestFramework(object):
 
         if os.path.isdir(role):
             # role is a folder name, use that
+            role = os.path.realpath(role)
             self.role_name = os.path.basename(role)
             self.role_path = '/etc/ansible/roles/{0}'.format(self.role_name)
-            self.bindings[os.path.realpath(self.role)] = self.role_path
+            self.bindings[os.path.realpath(self.role)] = {
+                'bind': self.role_path,
+                'ro': True
+            }
             self.type = TestFramework.TYPE_LOCAL
         elif role.endswith('.git') or '.git#' in role:
             # role is a git repository
@@ -57,6 +80,11 @@ class TestFramework(object):
             self.type = TestFramework.TYPE_GIT
 
     def cleanup(self):
+        """
+        Final cleanup, destroy any container created with our ContainerManager
+        and delete temporary files before showing the test recap
+        :return:
+        """
         self.print_header('CLEANING TESTS')
         for name, container in six.iteritems(self.docker.containers):
             self.docker.destroy(name)
@@ -77,9 +105,7 @@ class TestFramework(object):
 
     def install_role_deps(self):
         """
-        Check the meta file and install role dependencies
-        :param ansible:
-        :param role_path:
+        Check the meta file and install role dependencies recursively
         """
         installed = []
         roles = [self.role_path]
@@ -100,15 +126,26 @@ class TestFramework(object):
                 if role_name in installed:
                     continue
 
-                if '.' in role_name and (
-                            not self.ansible_paths['roles'] or
-                            not os.path.exists(os.path.join(self.ansible_paths['roles'], role_name))):
+                # try to get a role on galaxy if we do not have it
+                role_path = os.path.join(self.ansible_paths['roles'],
+                                         role_name)
+                has_role_locally = self.ansible_paths['roles'] and \
+                    os.path.exists(role_path)
+
+                if '.' in role_name and not has_role_locally:
                     self.print_header('DEPENDENCY: [%s]' % role_name)
                     self.stream('ansible-galaxy', 'install', role_name)
+                # otherwise copy it from the role-path if set
                 else:
                     self.print_header('LOCAL DEPENDENCY: [%s]' % role_name)
                     if not self.ansible_paths['roles']:
-                        raise ImportError('No roles path, please set --roles-path')
+                        raise ImportError(
+                            'No roles path, please set --roles-path')
+                    if not has_role_locally:
+                        raise ImportError('Role %s was not found in %s' % (
+                            role_name,
+                            self.ansible_paths['roles']
+                        ))
                     src_path = os.path.join('/roles', role_name)
                     target_path = '/etc/ansible/roles/{0}'.format(role_name)
                     click.echo('- copy from %s' % src_path)
@@ -121,10 +158,25 @@ class TestFramework(object):
 
     @staticmethod
     def print_header(text):
+        """
+        Helper method to display an ansible-like header
+        :param text:
+        :return:
+        """
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
             tags=None, verbosity=None, privileged=False):
+        """
+        Run all the tests
+        :param extra_vars: extra vars to pass to ansible
+        :param limit: limit on which targets to run the tests
+        :param skip_tags: skip certain tags
+        :param tags: run only those tags
+        :param verbosity: augment verbosity of ansible
+        :param privileged: start containers in privileged mode
+        :return: 0 on success, 1 on error, 2 if no tests are found
+        """
         try:
             self.print_header('TESTS [%s]' % self.role_name)
             self.setup_ansible()
@@ -146,6 +198,7 @@ class TestFramework(object):
                 self.print_header('NO TESTS')
                 click.secho('warning: no test found', fg='yellow')
                 return 2
+            return 0
         except:
             self.print_header('EXCEPTION')
 
@@ -160,21 +213,23 @@ class TestFramework(object):
 
     def setup_ansible(self):
         """
-        Setup our ansible container
-        :param docker: Instance of ContainerManager
-        :param work_dir: Temp work dir used by the app
-        :param ansible_version: The ansible version we want to use
-        :param role: The role to test
-        :return:
+        Setup our ansible container, pulling it from the registry if necessary
+        also if the repo is of type GIT or GALAXY, clone/download it
         """
         self.print_header('STARTING ANSIBLE')
 
+        image_name = 'aeriscloud/ansible:' + self.ansible_version
         self.ansible = self.docker.create('ansible', tty=True,
-                                          image='aeriscloud/ansible:' + self.ansible_version,
+                                          image=image_name,
                                           environment=self.environment)
 
-        self.ansible.start(binds=self.bindings)
-        click.secho('ok: [%s]' % self.ansible.image, fg='green')
+        self.ansible.start(binds=self.bindings,
+                           progress=pull_image_progress())
+
+        if self.ansible.pulled:
+            click.secho('pulled: [%s]' % self.ansible.image, fg='yellow')
+        else:
+            click.secho('ok: [%s]' % self.ansible.image, fg='green')
 
         if self.type == TestFramework.TYPE_GIT:
             self.print_header('GIT CLONE [%s]' % self.role)
@@ -192,23 +247,55 @@ class TestFramework(object):
             self.stream('ansible-galaxy', 'install', self.role)
 
     def setup_bindings(self):
+        """
+        Setup ansible bidings based on the configuration passed
+        """
         if self.ansible_paths['roles']:
-            self.bindings[self.ansible_paths['roles']] = '/roles'
+            self.bindings[self.ansible_paths['roles']] = {
+                'bind': '/roles',
+                'ro': True
+            }
 
         if self.ansible_paths['library']:
-            self.bindings[self.ansible_paths['library']] = '/usr/share/ansible/library'
+            self.bindings[self.ansible_paths['library']] = {
+                'bind': '/usr/share/ansible/library',
+                'ro': True
+            }
             self.environment['ANSIBLE_LIBRARY'] = '/usr/share/ansible/library'
 
         if self.ansible_paths['plugins']['action']:
-            self.bindings[self.ansible_paths['plugins']['action']] = '/usr/share/ansible_plugins/action_plugins'
+            self.bindings[self.ansible_paths['plugins']['action']] = {
+                'bind': '/usr/share/ansible_plugins/action_plugins',
+                'ro': True
+            }
+
+        if self.ansible_paths['plugins']['filter']:
+            self.bindings[self.ansible_paths['plugins']['filter']] = {
+                'bind': '/usr/share/ansible_plugins/filter_plugins',
+                'ro': True
+            }
+
+        if self.ansible_paths['plugins']['lookup']:
+            self.bindings[self.ansible_paths['plugins']['lookup']] = {
+                'bind': '/usr/share/ansible_plugins/lookup_plugins',
+                'ro': True
+            }
 
     def stream(self, *cmd):
+        """
+        Run a command on the ansible container and stream the result
+        to stdout
+        """
         if not self.ansible:
             raise RuntimeError('ansible container is not running')
         for line in self.ansible.stream(cmd, tty=True):
             click.echo(line, nl=False)
 
     def tests(self):
+        """
+        Generator that yields Test objects found in the role
+        :yield: Test
+        """
         try:
             # not the most elegent way to do things
             tests = [
@@ -217,7 +304,7 @@ class TestFramework(object):
                     ['ls', '-1', os.path.join(self.role_path, 'tests')]
                 ).split('\n')
                 if test.strip() and test.strip().endswith('.yml')
-            ]
+                ]
         except ExecuteReturnCodeError as e:
             if e.code != 2:
                 raise
