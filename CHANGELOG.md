@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## x.x.x - [unreleased]
+## [0.0.5] - 2015-05-22
 ### Changed
 * Flags now override the config, so it is possible to so things such as
   `-c config.yml --roles-path=/path/to/roles` and have the --roles-path
@@ -58,7 +58,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Initial version
 
-[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.4...HEAD
+[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.1...v0.0.2
