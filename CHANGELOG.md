@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## x.x.x - [unreleased]
+
 ## [0.0.4] - 2015-05-22
 ### Added
 * Pull images that are not available locally during tests
@@ -49,6 +51,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Initial version
 
+[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.4...HEAD
 [0.0.4]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.1...v0.0.2
