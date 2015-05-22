@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import os
-import ssl
-
 from docker.client import Client
 from docker.utils import kwargs_from_env
+
 
 # Taken from the docker-compose source
 def client():

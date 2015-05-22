@@ -10,11 +10,13 @@ from .framework import TestFramework
 
 logging.captureWarnings(True)
 
+
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
 # path options
 @click.option('--roles-path', default=None,
               metavar='ROLES_PATH',
-              help='Search path for non-galaxy roles that might be required as dependencies')
+              help='Search path for non-galaxy roles that might be required '
+                   'as dependencies')
 @click.option('--library-path', default=None,
               metavar='LIBRARY_PATH',
               help='Search path for custom ansible modules',

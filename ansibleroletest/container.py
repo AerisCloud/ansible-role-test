@@ -8,7 +8,8 @@ OOMKilled, Dead, Paused, Running, Restarting, Stopped = range(1, 7)
 
 class ExecuteReturnCodeError(BaseException):
     def __init__(self, cmd, code=-1, output=None):
-        super(ExecuteReturnCodeError, self).__init__('%s exited with code %d' % (cmd, code))
+        super(ExecuteReturnCodeError, self).__init__(
+            '%s exited with code %d' % (cmd, code))
         self.code = code
         self.output = output
 
@@ -97,14 +98,16 @@ class Container(object):
         """
         try:
             return self.execute(['cat', filename])
-        except ExecuteReturnCodeError as e:
+        except ExecuteReturnCodeError:
             return ''
 
     def create(self, start=False, progress=None, **options):
         if self.image not in self.images:
             # pull image from repo
             if hasattr(progress, '__call__'):
-                for line in self._client.pull(self.image, insecure_registry=True, stream=True):
+                for line in self._client.pull(self.image,
+                                              insecure_registry=True,
+                                              stream=True):
                     progress(line)
                 progress('finished')
             else:
@@ -169,7 +172,9 @@ class Container(object):
             yield line.decode('utf-8')
         exec_res = self._client.exec_inspect(exec_id=res['Id'])
         if exec_res.get('ExitCode') != 0:
-            raise ExecuteReturnCodeError(cmd[0], exec_res.get('ExitCode'), None)
+            raise ExecuteReturnCodeError(cmd[0],
+                                         exec_res.get('ExitCode'),
+                                         None)
 
     def stop(self):
         self._client.stop(container=self.id)
@@ -215,6 +220,5 @@ class ContainerManager(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _, __, ___):
         self.destroy()
-
