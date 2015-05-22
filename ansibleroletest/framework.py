@@ -269,6 +269,18 @@ class TestFramework(object):
                 'ro': True
             }
 
+        if self.ansible_paths['plugins']['filter']:
+            self.bindings[self.ansible_paths['plugins']['filter']] = {
+                'bind': '/usr/share/ansible_plugins/filter_plugins',
+                'ro': True
+            }
+
+        if self.ansible_paths['plugins']['lookup']:
+            self.bindings[self.ansible_paths['plugins']['lookup']] = {
+                'bind': '/usr/share/ansible_plugins/lookup_plugins',
+                'ro': True
+            }
+
     def stream(self, *cmd):
         """
         Run a command on the ansible container and stream the result

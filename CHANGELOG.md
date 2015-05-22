@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Pull images that are not available locally during tests
 * New docker-pull target in the Makefile
+* New --config flag to provide preconfigured role, library and plugin folders
 
 ### Changed
 * Can customize the virtualenv binary in the Makefile

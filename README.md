@@ -16,6 +16,41 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 
 ## Usage
 
+```
+Usage: ansible-role-test [OPTIONS] ROLE
+
+  ansible-role-test is a docker based testing utility for ansible roles.
+
+  ROLE can be either be a local path, a git repository or an ansible-galaxy
+  role name.
+
+Options:
+  -c, --config FILENAME           Config file to use for the tests
+  --roles-path ROLES_PATH         Search path for non-galaxy roles that might
+                                  be required as dependencies
+  --library-path LIBRARY_PATH     Search path for custom ansible modules
+  --plugins-action-path PLUGINS_ACTION_PATH
+                                  Search path for custom action plugins
+  --plugins-filter-path PLUGINS_FILTER_PATH
+                                  Search path for custom filter plugins
+  --plugins-lookup-path PLUGINS_LOOKUP_PATH
+                                  Search path for custom lookup plugins
+  -e, --extra-vars EXTRA_VARS     Set additional variables as key=value or
+                                  YAML/JSON
+  -l, --limit SUBSET              Limit selected hosts to a given pattern
+  --skip-tags SKIP_TAGS           Only run plays and tasks whose tags do not
+                                  match these values
+  -t, --tags TAGS                 Only run plays and tasks tagged with these
+                                  values
+  -v                              Verbose mode (-vvv for more, -vvvv to enable
+                                  connection debugging)
+  --ansible-version ANSIBLE_VERSION
+                                  The ansible version to use (either 1.8, 1.9
+                                  or latest)
+  --privileged
+  -h, --help                      Show this message and exit.
+```
+
 ```bash
 # Test a local role
 ansible-role-test /path/to/role
@@ -60,6 +95,26 @@ playbook:
   - name: "Check that my-role did that thing properly"
     module: do-something
 ```
+
+## Paths and config file
+
+Most of the time, your roles might depend on other local roles or plugins, in
+which case you can use the `--role-path`, `--library-path`, etc... flags to help
+ansible find those. In some cases though it might result in unwieldy commands
+due to the sheer amount of flags passed around. When that happens you can use a
+config file that follows this format to provide the proper information to ansible:
+
+```yaml
+---
+roles: ansible/roles
+library: ansible/library
+plugins:
+  action: ansible/plugins/actions
+  filter: ansible/plugins/filters
+```
+
+Then call `ansible-role-test` with the `--config` flag pointing to this file.
+The given paths are relative to the config file's location.
 
 ## Available test containers
 
