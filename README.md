@@ -128,7 +128,26 @@ named `ansible-<distro>:<version>`.
 * `ubuntu:14.04`
 * `ubuntu:15.04`
 
-Please check [`aeriscloud@docker`](https://registry.hub.docker.com/repos/aeriscloud/) for
-the current list of available images.
+Please check [`aeriscloud@docker`](https://registry.hub.docker.com/repos/aeriscloud/)
+for the current list of available images.
 
 If you wish to build all the images locally, you can run `make docker`.
+
+## Known issues/caveats
+
+* Any role that deals with kernel modules or raw hardware (eg. `iptables` or
+  formatting disks) will run into issues while running in docker.
+  `iptables` seems to work in privileged mode with no side effects but
+  anything that does destructive operations should not be tested with
+  privileged mode on.
+* While the centos boxes are running `systemd-container`, debian and ubuntu
+  boxes are not and as such calls to systemctl/initd might not behave the
+  same way as a real system.
+
+
+## Disclaimer
+
+This is currently a work in progress, I am not responsible and shall not
+be held responsible in any manner if this tool causes loss of data, hardware
+faults, act of gods, invocation of old or ancient ones, elder gods and other
+horrors from the depths.
