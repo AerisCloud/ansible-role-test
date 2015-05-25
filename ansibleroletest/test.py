@@ -106,8 +106,12 @@ class Test(object):
             ansible_cmd.append(os.path.join('/work', self.playbook_file))
 
             self.framework.stream(*ansible_cmd)
+
+            return True
         except ExecuteReturnCodeError as e:
             click.secho(str(e), fg='red')
+
+            return False
         finally:
             self.cleanup()
 

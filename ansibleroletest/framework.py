@@ -127,10 +127,9 @@ class TestFramework(object):
                     continue
 
                 # try to get a role on galaxy if we do not have it
-                role_path = os.path.join(self.ansible_paths['roles'],
-                                         role_name)
                 has_role_locally = self.ansible_paths['roles'] and \
-                    os.path.exists(role_path)
+                    os.path.exists(os.path.join(self.ansible_paths['roles'],
+                                                role_name))
 
                 if '.' in role_name and not has_role_locally:
                     self.print_header('DEPENDENCY: [%s]' % role_name)
@@ -183,15 +182,17 @@ class TestFramework(object):
             self.install_role_deps()
 
             for test in self.tests():
-                test.run(
+                if test.run(
                     extra_vars=extra_vars,
                     limit=limit,
                     skip_tags=skip_tags,
                     tags=tags,
                     verbosity=verbosity,
                     privileged=privileged
-                )
-                self.res['success'] += 1
+                ):
+                    self.res['success'] += 1
+                else:
+                    self.res['failed'] += 1
 
             if self.res['success'] == 0:
                 # no tests
