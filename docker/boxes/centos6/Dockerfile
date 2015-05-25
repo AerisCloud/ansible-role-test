@@ -4,7 +4,7 @@ FROM centos:6
 MAINTAINER Christophe Robin <crobin@nekoo.com>
 
 # Updating container (recommended by image provider)
-RUN yum -y update
+RUN yum -y update && yum install -y which tar
 
 # Change root password to ansible
 RUN usermod --password XT7/q1XkHlXSs root
