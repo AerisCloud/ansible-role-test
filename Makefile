@@ -1,4 +1,4 @@
-DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile -mindepth 2))
+DOCKER = $(patsubst %/Makefile,%,$(shell find docker -mindepth 2 -name Makefile))
 DOCKER_PULL = $(patsubst %,%-pull,$(DOCKER))
 TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
 

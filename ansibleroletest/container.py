@@ -190,6 +190,10 @@ class ContainerManager(object):
         self._containers = {}
 
     @property
+    def client(self):
+        return self._docker
+
+    @property
     def containers(self):
         return self._containers.copy()
 

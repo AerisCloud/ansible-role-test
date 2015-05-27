@@ -9,6 +9,7 @@ install_requires = [
     'docker-py >= 1.2.0, < 1.3',
     'giturlparse.py == 0.0.5',
     'humanize >= 0.5, < 0.6',
+    'python-slugify >= 1.0.2, < 1.1',
     'PyYAML >= 3.10, < 4',
     'six >= 1.9.0, < 2'
 ]

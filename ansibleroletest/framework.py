@@ -11,7 +11,7 @@ import yaml
 
 from .container import ExecuteReturnCodeError
 from .test import Test
-from .utils import pull_image_progress
+from .utils import pull_image_progress, cache_dir
 
 
 def mktmpdir():
@@ -19,8 +19,7 @@ def mktmpdir():
     Due to OSX and boot2docker, I can't use the tempdir module as /tmp cannot
     be mounted in boot2docker (only /Users/<user> is available)
     """
-    base_dir = appdirs.user_cache_dir('ansible_role_test', 'aeriscloud')
-    tmp_dir = os.path.join(base_dir, uuid.uuid4().hex)
+    tmp_dir = os.path.join(cache_dir, 'tmp', uuid.uuid4().hex)
     os.makedirs(tmp_dir)
     return tmp_dir
 
@@ -165,7 +164,7 @@ class TestFramework(object):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False):
+            tags=None, verbosity=None, privileged=False, cache=False):
         """
         Run all the tests
         :param extra_vars: extra vars to pass to ansible
@@ -188,7 +187,8 @@ class TestFramework(object):
                     skip_tags=skip_tags,
                     tags=tags,
                     verbosity=verbosity,
-                    privileged=privileged
+                    privileged=privileged,
+                    cache=cache
                 ):
                     self.res['success'] += 1
                 else:

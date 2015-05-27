@@ -3,8 +3,14 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 0.0.6 - [unreleased]
+### Added
+* Volumes declared on test containers can now be cached between calls by using
+  the `--cache` flag (cached in your user's cache folder)
+* Support for groups based on container names
+
 ### Changed
-* `centos` images now have some extra packages installed to make them closer to a normal instance
+* `centos` images now have some extra packages installed to make them closer
+  to a normal instance
 
 ### Fixed
 * Prevent `make docker` from picking up `docker/Makefile` as a target.

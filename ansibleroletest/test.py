@@ -1,18 +1,19 @@
 import click
 import os
 import six
+import slugify
 import yaml
 
 from .container import ExecuteReturnCodeError
-from.utils import pull_image_progress
+from .utils import pull_image_progress, cache_dir
 
 DEFAULT_CONTAINERS = {
-    'centos6': 'centos:6',
-    'centos7': 'centos:7',
+    'centos-6': 'centos:6',
+    'centos-7': 'centos:7',
     'debian-wheezy': 'debian:wheezy',
     'debian-jessie': 'debian:jessie',
     'ubuntu-lts': 'ubuntu:lts',
-    'ubuntu15': 'ubuntu:15.04'
+    'ubuntu-15': 'ubuntu:15.04'
 }
 
 
@@ -40,11 +41,26 @@ class Test(object):
         """
         Returns the inventory content based on the images enabled in the test
         """
-        inventory = '[test]\n'
+        inventory = ''
         for name, container in six.iteritems(self.docker.containers):
             inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
                          'ansible_ssh_pass=ansible\n' \
                 .format(name, container.internal_ip)
+
+        # create groups based on container names
+        current_group = None
+        for name in sorted(self.docker.containers.keys()):
+            if '-' not in name:
+                continue
+
+            group = name[:name.find('-')]
+            if group != current_group:
+                inventory += '\n[%s]\n' % group
+                current_group = group
+
+            inventory += '{0}\n' \
+                .format(name)
+
         return inventory
 
     @property
@@ -66,7 +82,7 @@ class Test(object):
             click.secho('ok: [%s]' % container.image, fg='green')
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False):
+            tags=None, verbosity=None, privileged=False, cache=False):
         """
         Start the containers and run the test playbook
         :param extra_vars: extra vars to pass to ansible
@@ -78,7 +94,7 @@ class Test(object):
         """
         try:
             self.framework.print_header('TEST [%s]' % self.name)
-            self.setup(limit, privileged)
+            self.setup(limit, privileged, cache)
 
             self.framework.print_header('RUNNING TESTS')
 
@@ -115,14 +131,14 @@ class Test(object):
         finally:
             self.cleanup()
 
-    def setup(self, limit=None, privileged=False):
+    def setup(self, limit=None, privileged=False, cache=False):
         """
         Does the initial container and playbook setup/generation
         :param limit:
         :param privileged:
         """
         self.setup_playbook()
-        self.start_containers(limit, privileged)
+        self.start_containers(limit, privileged, cache)
         self.setup_inventory()
 
     def setup_playbook(self):
@@ -150,7 +166,7 @@ class Test(object):
         with open(framework_file, 'w') as fd:
             fd.write(self.inventory)
 
-    def start_containers(self, limit=None, privileged=False):
+    def start_containers(self, limit=None, privileged=False, cache=False):
         """
         Starts the containers, if not containers are specified in the test
         starts all containers available (centos/debian/ubuntu)
@@ -166,15 +182,32 @@ class Test(object):
         if 'containers' not in self.test:
             self.test['containers'] = DEFAULT_CONTAINERS
 
+        # TODO: now that we have groups, find a more proper way to do this
         # do not start containers that do not match the given limit
-        if limit and limit != 'all':
-            unwanted = set(self.test['containers']) - set(limit.split(','))
-            for unwanted_container in unwanted:
-                del self.test['containers'][unwanted_container]
+        #if limit and limit != 'all':
+        #    unwanted = set(self.test['containers']) - set(limit.split(','))
+        #    for unwanted_container in unwanted:
+        #        del self.test['containers'][unwanted_container]
 
         for name, image in six.iteritems(self.test['containers']):
             full_image = 'aeriscloud/ansible-%s' % image
+            image_info = self.docker.client.inspect_image(full_image)
+            bindings = {}
+
+            # if the image has volume sets, cache them
+            if cache and 'Config' in image_info \
+                    and 'Volumes' in image_info['Config']:
+                volumes = image_info['Config']['Volumes']
+                for volume in volumes:
+                    volume_cache_dir = os.path.join(
+                        cache_dir,
+                        slugify.slugify(full_image),
+                        volume[1:]
+                    )
+                    bindings[volume_cache_dir] = volume
+
             self.docker.create(name, image=full_image).start(
+                binds=bindings,
                 privileged=privileged,
                 progress=pull_image_progress()
             )

@@ -61,7 +61,10 @@ logging.captureWarnings(True)
               metavar='ANSIBLE_VERSION',
               help='The ansible version to use (either 1.8, 1.9 or latest)',
               type=click.Choice(['1.8', '1.9', 'latest']))
-@click.option('--privileged', is_flag=True, default=False)
+@click.option('--privileged', is_flag=True, default=False,
+              help='Run test containers in privileged mode (dangerous)')
+@click.option('--cache', is_flag=True,
+              help='Cache yum/apt folders on the host')
 @click.argument('role')
 def main(role,
          config,
@@ -71,7 +74,7 @@ def main(role,
          # ansible-playbook args
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
-         ansible_version, privileged):
+         ansible_version, privileged, cache):
     """
     ansible-role-test is a docker based testing utility for ansible roles.
 
@@ -98,7 +101,8 @@ def main(role,
             skip_tags=skip_tags,
             tags=tags,
             verbosity=verbosity,
-            privileged=privileged
+            privileged=privileged,
+            cache=cache
         )
     sys.exit(res)
 

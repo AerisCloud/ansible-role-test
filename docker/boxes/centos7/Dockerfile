@@ -24,6 +24,10 @@ RUN sshd-keygen || true
 # Cleanup
 RUN yum clean all
 
+# Cache some folders
+VOLUME /var/cache/yum
+VOLUME /var/lib/yum
+
 # Expose SSH
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

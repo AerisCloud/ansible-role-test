@@ -1,3 +1,4 @@
+import appdirs
 import click
 import humanize
 import json
@@ -61,3 +62,5 @@ def pull_image_progress():
         )
 
     return _internal
+
+cache_dir = appdirs.user_cache_dir('ansible_role_test', 'aeriscloud')
