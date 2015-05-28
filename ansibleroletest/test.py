@@ -16,6 +16,12 @@ DEFAULT_CONTAINERS = {
     'ubuntu-15': 'ubuntu:15.04'
 }
 
+DEFAULT_GROUPS = {
+    'centos': ['centos-6', 'centos-7'],
+    'debian': ['debian-wheezy', 'debian-jessie'],
+    'ubuntu': ['ubuntu-lts', 'ubuntu-15']
+}
+
 
 class Test(object):
     """
@@ -33,6 +39,9 @@ class Test(object):
         Test._counter += 1
         self.id = Test._counter
 
+        self.containers = DEFAULT_CONTAINERS
+        self.groups = DEFAULT_GROUPS
+
         self.inventory_file = 'inventory_%d' % self.id
         self.playbook_file = 'test_%d.yml' % self.id
 
@@ -47,19 +56,12 @@ class Test(object):
                          'ansible_ssh_pass=ansible\n' \
                 .format(name, container.internal_ip)
 
-        # create groups based on container names
-        current_group = None
-        for name in sorted(self.docker.containers.keys()):
-            if '-' not in name:
-                continue
-
-            group = name[:name.find('-')]
-            if group != current_group:
-                inventory += '\n[%s]\n' % group
-                current_group = group
-
-            inventory += '{0}\n' \
-                .format(name)
+        # create groups
+        for group, names in six.iteritems(self.groups):
+            inventory += '\n[%s]\n' % group
+            for name in names:
+                inventory += '{0}\n' \
+                    .format(name)
 
         return inventory
 
@@ -179,17 +181,26 @@ class Test(object):
         #       containers based on the advertised supported operating systems,
         #       the issue is that the format is kinda rough, like redhat and
         #       centos are merged under EL, and some distros are not available
-        if 'containers' not in self.test:
-            self.test['containers'] = DEFAULT_CONTAINERS
+        if 'containers' in self.test:
+            self.containers = self.test['containers']
+            self.groups = {}
 
-        # TODO: now that we have groups, find a more proper way to do this
+        if 'groups' in self.test:
+            self.groups.update(self.test['groups'])
+
         # do not start containers that do not match the given limit
-        #if limit and limit != 'all':
-        #    unwanted = set(self.test['containers']) - set(limit.split(','))
-        #    for unwanted_container in unwanted:
-        #        del self.test['containers'][unwanted_container]
+        if limit and limit != 'all':
+            allowed = []
+            for allowed_name in limit.split(','):
+                if allowed_name in self.containers:
+                    allowed.append(allowed_name)
+                elif allowed_name in self.groups:
+                    allowed += self.groups[allowed_name]
+            for container_name in self.containers.copy():
+                if container_name not in allowed:
+                    del self.containers[container_name]
 
-        for name, image in six.iteritems(self.test['containers']):
+        for name, image in six.iteritems(self.containers):
             full_image = 'aeriscloud/ansible-%s' % image
             image_info = self.docker.client.inspect_image(full_image)
             bindings = {}

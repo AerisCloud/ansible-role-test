@@ -74,9 +74,21 @@ name: "My test name"
 # The containers you will use for this test, you could for example spawn a debian
 # centos, ubuntu, etc... and run the tests on "all" hosts
 # If skipped, tests will be run on every containers available
-containers:
-  centos6: 'centos:6'
-  centos7: 'centos:7'
+#containers:
+#  master1: 'centos:6'
+#  slave1: 'centos:7'
+#  slave2: 'centos:7'
+#  slave3: 'debian:wheezy'
+# You can also setup custom inventory groups to be declared in the inventory, if
+# no containers are declared above, they will be merged with the default groups.
+# For exemple the following declaration will create 2 groups, master and slaves.
+#groups:
+#  masters:
+#  - master1
+#  slaves:
+#  - slave1
+#  - slave2
+#  - slave3
 # This is your test playbook
 playbook:
 - hosts: all
@@ -121,12 +133,16 @@ The given paths are relative to the config file's location.
 You can find them on the wizcorp user on the docker registry, they should be
 named `ansible-<distro>:<version>`.
 
-* `centos:6`
-* `centos:7`
-* `debian:wheezy`
-* `debian:jessie`
-* `ubuntu:14.04`
-* `ubuntu:15.04`
+`image name`    | `name in playbook`
+----------------|-------------------
+centos:6        | centos-6
+centos:7        | centos-7
+debian:wheezy   | debian-wheezy
+debian:jessie   | debian-jessie
+ubuntu:14.04    | ubuntu-lts
+ubuntu:15.04    | ubuntu-15
+
+They are also automatically separated in 3 groups `centos`, `debian` and `ubuntu`.
 
 Please check [`aeriscloud@docker`](https://registry.hub.docker.com/repos/aeriscloud/)
 for the current list of available images.

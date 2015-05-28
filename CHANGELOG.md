@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
-* Support for groups based on container names
+* Support for creating inventory groups in the test file
 
 ### Changed
 * `centos` images now have some extra packages installed to make them closer
