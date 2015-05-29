@@ -227,3 +227,4 @@ class Test(object):
                 privileged=privileged
             )
             click.secho('ok: [%s]' % full_image, fg='green')
+

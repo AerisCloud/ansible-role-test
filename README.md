@@ -6,13 +6,17 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 ## Requirements
 
 * docker
-* python 2.7 or 3.x
+* python 2.7 (code should work on 3.x but `make dist` won't)
 
 ## Installation
 
 * Clone repository
 * Run `make dist`
 * Either run `venv/bin/ansible-role-test` or `dist/ansible-role-test-<OS>-<arch>`
+
+## Development
+
+Instead of running `make dist`, run `make dev` and use `venv/bin/ansible-role-test`.
 
 ## Usage
 

@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 from ansibleroletest import __version__, __author__, __email__, __license__, __url__
 
 install_requires = [
-    'appdirs >= 1.4.0, < 2',
-    'click == 4.0',
+    'appdirs >= 1.4.0, < 2.0',
+    'click >= 4.0, < 5.0',
     'docker-py >= 1.2.0, < 1.3',
     'giturlparse.py == 0.0.5',
     'humanize >= 0.5, < 0.6',
-    'python-slugify >= 1.0.2, < 1.1',
-    'PyYAML >= 3.10, < 4',
-    'six >= 1.9.0, < 2'
+    'python-slugify >= 1.0.2, < 2.0',
+    'PyYAML >= 3.10, < 4.0',
+    'six >= 1.9.0, < 2.0'
 ]
 
 setup(

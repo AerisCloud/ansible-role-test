@@ -90,7 +90,8 @@ class TestFramework(object):
             click.secho('ok: [%s]' % container.image, fg='green')
 
         # remove temp folder
-        shutil.rmtree(self.work_dir)
+        if os.path.exists(self.work_dir):
+            shutil.rmtree(self.work_dir)
 
         self.print_header('TESTS RECAP')
         click.echo(
