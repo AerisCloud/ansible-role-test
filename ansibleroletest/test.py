@@ -202,14 +202,19 @@ class Test(object):
 
         for name, image in six.iteritems(self.containers):
             full_image = 'aeriscloud/ansible-%s' % image
+
+            container = self.docker.create(name, image=full_image,
+                                           progress=pull_image_progress())
+
+            # we need to create the VM first as images are pulled at that time
             image_info = self.docker.client.inspect_image(full_image)
             bindings = {}
 
             # if the image has volume sets, cache them
             if cache and 'Config' in image_info \
-                    and 'Volumes' in image_info['Config']:
-                volumes = image_info['Config']['Volumes']
-                for volume in volumes:
+                    and 'Volumes' in image_info['Config']\
+                    and image_info['Config']['Volumes']:
+                for volume in image_info['Config']['Volumes']:
                     volume_cache_dir = os.path.join(
                         cache_dir,
                         slugify.slugify(full_image),
@@ -217,9 +222,8 @@ class Test(object):
                     )
                     bindings[volume_cache_dir] = volume
 
-            self.docker.create(name, image=full_image).start(
+            container.start(
                 binds=bindings,
-                privileged=privileged,
-                progress=pull_image_progress()
+                privileged=privileged
             )
             click.secho('ok: [%s]' % full_image, fg='green')

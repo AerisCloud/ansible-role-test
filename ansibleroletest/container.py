@@ -204,8 +204,9 @@ class ContainerManager(object):
 
     def create(self, name, progress=None, start=False, **options):
         self._containers[name] = Container(self._docker, **options)
+        self._containers[name].create(progress=progress)
         if start:
-            self._containers[name].start(progress=progress, **options)
+            self._containers[name].start(**options)
         return self._containers[name]
 
     def destroy(self, names=None):
