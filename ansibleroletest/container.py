@@ -78,16 +78,18 @@ class Container(object):
             'exit_code': state_info['ExitCode'],
             'error': state_info['Error']
         }
+        # The state object changes all the time between API versions
         if state_info['OOMKilled']:
             state['status'] = OOMKilled
-        if state_info['Dead']:
+        elif 'Dead' in state_info and state_info['Dead']:
             state['status'] = Dead
-        if state_info['Paused']:
+        elif state_info['Paused']:
             state['status'] = Paused
-        if state_info['Running']:
+        elif state_info['Running']:
             state['status'] = Running
-        if state_info['Restarting']:
+        elif state_info['Restarting']:
             state['status'] = Restarting
+
         return state
 
     def content(self, filename):
