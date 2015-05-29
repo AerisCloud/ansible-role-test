@@ -11,11 +11,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 * `centos` images now have some extra packages installed to make them closer
   to a normal instance
+* Docker version is detected by the API at start
 
 ### Fixed
 * Prevent `make docker` from picking up `docker/Makefile` as a target.
 * Bug when trying to load an ansible-galaxy role with `--roles-path` not set (again)
 * Properly count failed and successful tests
+* Crash when `Dead` is not returned by the inspect API
 
 ## [0.0.5] - 2015-05-22
 ### Changed
