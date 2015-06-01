@@ -23,8 +23,7 @@ dev: venv
 dist: build $(TARGET)
 
 $(TARGET): $(PYTHON_ENV)pyinstaller
-	$(PYTHON_ENV)pyinstaller --clean --onefile bin/ansible-role-test
-	mv dist/ansible-role-test $(TARGET)
+	$(PYTHON_ENV)pyinstaller --clean --onefile bin/ansible-role-test -n $(TARGET)
 
 venv:
 	$(VIRTUALENV) --python=$(PYTHON) venv
