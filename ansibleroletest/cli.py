@@ -65,6 +65,8 @@ logging.captureWarnings(True)
               help='Run test containers in privileged mode (dangerous)')
 @click.option('--cache', is_flag=True,
               help='Cache yum/apt folders on the host')
+@click.option('--save-failed/--no-save-failed', default=True,
+              help='Save failed containers for inspection')
 @click.argument('role')
 def main(role,
          config,
@@ -74,7 +76,7 @@ def main(role,
          # ansible-playbook args
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
-         ansible_version, privileged, cache):
+         ansible_version, privileged, cache, save_failed):
     """
     ansible-role-test is a docker based testing utility for ansible roles.
 
@@ -102,7 +104,8 @@ def main(role,
             tags=tags,
             verbosity=verbosity,
             privileged=privileged,
-            cache=cache
+            cache=cache,
+            save_failed=save_failed
         )
     sys.exit(res)
 

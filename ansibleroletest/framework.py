@@ -1,4 +1,3 @@
-import appdirs
 import click
 import giturlparse
 import os
@@ -46,7 +45,9 @@ class TestFramework(object):
         # check the role type
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
-        self.bindings = {self.work_dir: {'bind': '/work', 'ro': True}}
+        self.bindings = {
+            self.work_dir: {'bind': '/work', 'ro': False},
+        }
         self.type = TestFramework.TYPE_GALAXY
 
         self.ansible_paths = {
@@ -165,7 +166,8 @@ class TestFramework(object):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False, cache=False):
+            tags=None, verbosity=None, privileged=False, cache=False,
+            save_failed=True):
         """
         Run all the tests
         :param extra_vars: extra vars to pass to ansible
@@ -189,7 +191,8 @@ class TestFramework(object):
                     tags=tags,
                     verbosity=verbosity,
                     privileged=privileged,
-                    cache=cache
+                    cache=cache,
+                    save_failed=save_failed
                 ):
                     self.res['success'] += 1
                 else:

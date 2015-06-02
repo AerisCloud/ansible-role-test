@@ -1,4 +1,6 @@
 import click
+import datetime
+import json
 import os
 import six
 import slugify
@@ -44,6 +46,7 @@ class Test(object):
 
         self.inventory_file = 'inventory_%d' % self.id
         self.playbook_file = 'test_%d.yml' % self.id
+        self.receipts_file = 'receipts_%d.yml' % self.id
 
     @property
     def inventory(self):
@@ -74,17 +77,50 @@ class Test(object):
             return self.test['name']
         return 'Test #%d' % self.id
 
-    def cleanup(self):
+    def cleanup(self, save_failed=True):
         """
         Destroy all the test containers
         """
+
+        # search for failed hosts in the receipts
+        failed_hosts = []
+        receipt_file = os.path.join(self.framework.work_dir,
+                                    self.receipts_file)
+        if save_failed and os.path.exists(receipt_file):
+            with open(receipt_file) as fd:
+                data = json.load(fd)
+                for hostname, result in six.iteritems(data):
+                    if result['stats']['failed']:
+                        failed_hosts.append({
+                            'name': hostname,
+                            'task': result['tasks'].pop()
+                        })
+
+        # and commit any failed host for inspection
+        if failed_hosts:
+            self.framework.print_header('SAVING FAILED CONTAINERS')
+            for failed_host in failed_hosts:
+                container = self.docker.containers[failed_host['name']]
+                repo = 'failed/%s' % failed_host['name']
+                tag = datetime.datetime.now().strftime('%s')
+                container.commit(repo, tag, failed_host['task']['name'])
+                click.secho(
+                    'ok: saved [%s] as [%s:%s]\n    %s' % (
+                        failed_host['name'],
+                        repo,
+                        tag,
+                        failed_host['task']['name']
+                    ),
+                    fg='green')
+
         self.framework.print_header('CLEANING TEST CONTAINERS')
         for name, container in six.iteritems(self.docker.containers):
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False, cache=False):
+            tags=None, verbosity=None, privileged=False, cache=False,
+            save_failed=True):
         """
         Start the containers and run the test playbook
         :param extra_vars: extra vars to pass to ansible
@@ -123,7 +159,14 @@ class Test(object):
 
             ansible_cmd.append(os.path.join('/work', self.playbook_file))
 
-            self.framework.stream(*ansible_cmd)
+            # docker's exec_create call doesn't allow you to set environment
+            # variables, hence the call to sh
+            final_cmd = ['sh', '-c', 'ANSIBLE_RECEIPTS_FILE="%s" %s' % (
+                os.path.join('/work', self.receipts_file),
+                ' '.join(map(six.moves.shlex_quote, ansible_cmd))
+            )]
+
+            self.framework.stream(*final_cmd)
 
             return True
         except ExecuteReturnCodeError as e:
@@ -131,7 +174,7 @@ class Test(object):
 
             return False
         finally:
-            self.cleanup()
+            self.cleanup(save_failed=save_failed)
 
     def setup(self, limit=None, privileged=False, cache=False):
         """
@@ -227,4 +270,3 @@ class Test(object):
                 privileged=privileged
             )
             click.secho('ok: [%s]' % full_image, fg='green')
-

@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
 * Support for creating inventory groups in the test file
+* Failed tests are now committed so that they can be inspected by the user (can
+  be disabled by using the `--no-save-failed` flag)
 
 ### Changed
 * `centos` images now have some extra packages installed to make them closer

@@ -112,6 +112,13 @@ playbook:
     module: do-something
 ```
 
+## On test failed
+
+On test failure, the default is to commit the current state of the container to
+`failed/{HOSTNAME}:{STAMP}` which can then be manually inspected to determine
+what could be wrong. If this feature is not desired, it is possible to pass the
+`--no-save-failed` option to the command line to disable it.
+
 ## Paths and config file
 
 Most of the time, your roles might depend on other local roles or plugins, in
