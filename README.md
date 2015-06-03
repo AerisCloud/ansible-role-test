@@ -120,6 +120,28 @@ On test failure, the default is to commit the current state of the container to
 what could be wrong. If this feature is not desired, it is possible to pass the
 `--no-save-failed` option to the command line to disable it.
 
+Saved images can be found by running `docker images` and finding containers
+whose repository start with `failed/`. Once found, one can inspect the container
+by running:
+
+```bash
+$ docker run -t -i failed/container-name:tag bash
+[root@671165bdfcb0 /]#
+```
+
+Once done, one can removed failed containers by running `docker rmi failed/foo:tag`.
+An fast way to remove all failed containers is to run:
+
+```bash
+# find all the images in the failed/ repository and remove them
+$ docker images | grep '^failed/' | awk '{ print $1":"$2 }' | xargs -r docker rmi
+Untagged: failed/debian-wheezy:1433320037
+Deleted: 5a6b24509052d9c1a8dc7c046797b11f25c58d74179827d17269f016bf1a20ee
+Untagged: failed/debian-jessie:1433320031
+Deleted: 7d4557d199bd75b17f47d6e2c1f5d207bbb98bf4600b52b4786c71c645cf266e
+...
+```
+
 ## Paths and config file
 
 Most of the time, your roles might depend on other local roles or plugins, in
