@@ -7,13 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
 * Support for creating inventory groups in the test file
-* Failed tests are now committed so that they can be inspected by the user (can
-  be disabled by using the `--no-save-failed` flag)
+* Failed tests can now be committed so that they can be inspected by the user
+  by using the `--save-failed` flag on the commandline
 
 ### Changed
 * `centos` images now have some extra packages installed to make them closer
   to a normal instance
 * Docker version is detected by the API at start
+* Dropped `make dist` and `pyinstaller` due to the build breaking on a semi
+  regular basis
+* Renamed `make build` to `make install`
 
 ### Fixed
 * Prevent `make docker` from picking up `docker/Makefile` as a target.
