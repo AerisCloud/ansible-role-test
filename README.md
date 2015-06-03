@@ -52,7 +52,11 @@ Options:
   --ansible-version ANSIBLE_VERSION
                                   The ansible version to use (either 1.8, 1.9
                                   or latest)
-  --privileged
+  --privileged                    Run test containers in privileged mode
+                                  (dangerous)
+  --cache                         Cache yum/apt folders on the host
+  --save-failed / --no-save-failed
+                                  Save failed containers for inspection
   -h, --help                      Show this message and exit.
 ```
 
@@ -115,10 +119,10 @@ playbook:
 
 ## On test failed
 
-On test failure, the default is to commit the current state of the container to
+On test failure, it is possible to commit the current state of the container to
 `failed/{HOSTNAME}:{STAMP}` which can then be manually inspected to determine
-what could be wrong. If this feature is not desired, it is possible to pass the
-`--no-save-failed` option to the command line to disable it.
+what could be wrong. To enable this feature, one just needs to pass the
+`--save-failed` option to the command line.
 
 Saved images can be found by running `docker images` and finding containers
 whose repository start with `failed/`. Once found, one can inspect the container
