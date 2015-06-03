@@ -65,7 +65,7 @@ logging.captureWarnings(True)
               help='Run test containers in privileged mode (dangerous)')
 @click.option('--cache', is_flag=True,
               help='Cache yum/apt folders on the host')
-@click.option('--save-failed/--no-save-failed', default=True,
+@click.option('--save-failed/--no-save-failed', default=False,
               help='Save failed containers for inspection')
 @click.argument('role')
 def main(role,
@@ -96,7 +96,8 @@ def main(role,
 
         _load_config(ansible_paths, config)
 
-        framework = TestFramework(docker, role, ansible_paths, ansible_version)
+        framework = TestFramework(docker, role, ansible_paths,
+                                  ansible_version)
         res = framework.run(
             extra_vars=extra_vars,
             limit=limit,
@@ -107,6 +108,12 @@ def main(role,
             cache=cache,
             save_failed=save_failed
         )
+
+        if res != 0 and not save_failed:
+            click.secho('''
+info: some of the tests have failed. If you wish to inspect the failed
+      containers, rerun the command while adding the --save-failed flag
+      to your command line.''', fg='blue')
     sys.exit(res)
 
 
