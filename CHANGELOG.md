@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## 0.0.6 - [unreleased]
+## 0.1.0 - [unreleased]
 ### Added
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
