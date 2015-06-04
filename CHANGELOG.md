@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Support for creating inventory groups in the test file
 * Failed tests can now be committed so that they can be inspected by the user
   by using the `--save-failed` flag on the commandline
+* Can add host variables by declaring a container as a map with "image" and "vars"
 
 ### Changed
 * `centos` images now have some extra packages installed to make them closer

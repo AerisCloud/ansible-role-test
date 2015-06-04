@@ -85,7 +85,10 @@ name: "My test name"
 # If skipped, tests will be run on every containers available
 #containers:
 #  master1: 'centos:6'
-#  slave1: 'centos:7'
+#  slave1:
+#    image: 'centos:7'
+#    vars:
+#      host_var1: foobar # defines host_var1 on this host on particular
 #  slave2: 'centos:7'
 #  slave3: 'debian:wheezy'
 # You can also setup custom inventory groups to be declared in the inventory, if

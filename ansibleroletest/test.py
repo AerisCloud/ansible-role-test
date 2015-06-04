@@ -54,10 +54,13 @@ class Test(object):
         Returns the inventory content based on the images enabled in the test
         """
         inventory = ''
-        for name, container in six.iteritems(self.docker.containers):
-            inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
-                         'ansible_ssh_pass=ansible\n' \
-                .format(name, container.internal_ip)
+        for name, info in six.iteritems(self.containers):
+            entry = '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
+                         'ansible_ssh_pass=ansible' \
+                .format(name, info['container'].internal_ip)
+            for key, val in six.iteritems(info.get('vars', {})):
+                entry += ' {key}={val}'.format(key=key, val=repr(val))
+            inventory += '%s\n' % entry
 
         # create groups
         for group, names in six.iteritems(self.groups):
@@ -243,8 +246,14 @@ class Test(object):
                 if container_name not in allowed:
                     del self.containers[container_name]
 
-        for name, image in six.iteritems(self.containers):
-            full_image = 'aeriscloud/ansible-%s' % image
+        for name, info in six.iteritems(self.containers):
+            if isinstance(info, six.string_types):
+                info = {
+                    'image': info
+                }
+                self.containers[name] = info
+
+            full_image = 'aeriscloud/ansible-%s' % info['image']
 
             container = self.docker.create(name, image=full_image,
                                            progress=pull_image_progress())
@@ -269,4 +278,5 @@ class Test(object):
                 binds=bindings,
                 privileged=privileged
             )
+            info['container'] = container
             click.secho('ok: [%s]' % full_image, fg='green')
