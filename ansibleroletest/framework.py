@@ -46,7 +46,6 @@ class TestFramework(object):
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
         self.bindings = {
-            '/home/crobin/Code/ansible/receipts/receipts.py': {'bind': '/etc/ansible/plugins/callback_plugins/receipts.py', 'ro': True},
             self.work_dir: {'bind': '/work', 'ro': False},
         }
         self.type = TestFramework.TYPE_GALAXY
