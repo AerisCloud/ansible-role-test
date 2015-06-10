@@ -1,5 +1,8 @@
 import click
+import os
+import six
 import sys
+import yaml
 
 from ansibleroletest.container import ContainerManager
 from ansibleroletest.docker import client as docker_client
