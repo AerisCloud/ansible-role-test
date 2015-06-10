@@ -46,6 +46,7 @@ class TestFramework(object):
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
         self.bindings = {
+            '/home/crobin/Code/ansible/receipts/receipts.py': {'bind': '/etc/ansible/plugins/callback_plugins/receipts.py', 'ro': True},
             self.work_dir: {'bind': '/work', 'ro': False},
         }
         self.type = TestFramework.TYPE_GALAXY
@@ -154,7 +155,13 @@ class TestFramework(object):
 
                 click.secho('ok: [%s]' % role_name, fg='green')
 
-                installed.append(role_name)
+                # because ansible-galaxy might have installed sub deps, just list
+                # the folders in /etc/ansible/roles
+                installed = [
+                    os.path.basename(file)
+                    for file in self.ansible.execute(['find', '/etc/ansible/roles/', '-maxdepth', '1', '-type', 'd']).split('\n')
+                    if '.' in os.path.basename(file)
+                ]
 
     @staticmethod
     def print_header(text):
@@ -167,7 +174,7 @@ class TestFramework(object):
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
             tags=None, verbosity=None, privileged=False, cache=False,
-            save_failed=True):
+            save=None):
         """
         Run all the tests
         :param extra_vars: extra vars to pass to ansible
@@ -192,7 +199,7 @@ class TestFramework(object):
                     verbosity=verbosity,
                     privileged=privileged,
                     cache=cache,
-                    save_failed=save_failed
+                    save=save
                 ):
                     self.res['success'] += 1
                 else:

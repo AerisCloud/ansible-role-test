@@ -80,39 +80,50 @@ class Test(object):
             return self.test['name']
         return 'Test #%d' % self.id
 
-    def cleanup(self, save_failed=True):
+    def cleanup(self, save=None):
         """
         Destroy all the test containers
         """
 
         # search for failed hosts in the receipts
-        failed_hosts = []
+        save_containers = []
         receipt_file = os.path.join(self.framework.work_dir,
                                     self.receipts_file)
-        if save_failed and os.path.exists(receipt_file):
+        if save and os.path.exists(receipt_file):
             with open(receipt_file) as fd:
                 data = json.load(fd)
                 for hostname, result in six.iteritems(data):
-                    if result['stats']['failed']:
-                        failed_hosts.append({
+                    if save == 'all' or \
+                            (save == 'failed' and result['stats']['failed']) or \
+                            (save == 'successful' and not result['stats']['failed']):
+                        save_containers.append({
                             'name': hostname,
-                            'task': result['tasks'].pop()
+                            'status': result['stats']['failed'] and 'failed' or 'successful',
+                            'task': result['tasks'].pop(),
+                            'metadata': result
                         })
 
         # and commit any failed host for inspection
-        if failed_hosts:
-            self.framework.print_header('SAVING FAILED CONTAINERS')
-            for failed_host in failed_hosts:
-                container = self.docker.containers[failed_host['name']]
-                repo = 'failed/%s' % failed_host['name']
-                tag = datetime.datetime.now().strftime('%s')
-                container.commit(repo, tag, failed_host['task']['name'])
+        if save_containers:
+            self.framework.print_header('SAVING CONTAINERS')
+            for details in save_containers:
+                container = self.docker.containers[details['name']]
+                repo = 'art/{role_name}.{container}'.format(
+                    role_name=self.framework.role_name,
+                    container=details['name']
+                )
+                tag = '{status}-{date}'.format(
+                    status=details['status'],
+                    date=datetime.datetime.now().strftime('%s')
+                )
+                res = container.commit(repo, tag, json.dumps(details['metadata']))
                 click.secho(
-                    'ok: saved [%s] as [%s:%s]\n    %s' % (
-                        failed_host['name'],
+                    'ok: saved [%s] as [%s:%s]\n    id: %s   commit: %s' % (
+                        details['name'],
                         repo,
                         tag,
-                        failed_host['task']['name']
+                        res.get('Id')[:12],
+                        details['task']['name']
                     ),
                     fg='green')
 
@@ -123,7 +134,7 @@ class Test(object):
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
             tags=None, verbosity=None, privileged=False, cache=False,
-            save_failed=True):
+            save=None):
         """
         Start the containers and run the test playbook
         :param extra_vars: extra vars to pass to ansible
@@ -177,7 +188,7 @@ class Test(object):
 
             return False
         finally:
-            self.cleanup(save_failed=save_failed)
+            self.cleanup(save=save)
 
     def setup(self, limit=None, privileged=False, cache=False):
         """

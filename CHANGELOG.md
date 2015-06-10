@@ -7,9 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
 * Support for creating inventory groups in the test file
-* Failed tests can now be committed so that they can be inspected by the user
-  by using the `--save-failed` flag on the commandline
-* Can add host variables by declaring a container as a map with "image" and "vars"
+* Provisionned containers can now be committed to the local registry by using
+  the `--save` option, the option takes either `failed`, `successful` or `all`
+  to filter which containers to save
+* Can add host variables by declaring a container as a map with the `image`
+  and `vars` key
+* `snapshots` subcommand for listing, inspecting and deleting saved containers
 
 ### Changed
 * `centos` images now have some extra packages installed to make them closer
@@ -24,6 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Bug when trying to load an ansible-galaxy role with `--roles-path` not set (again)
 * Properly count failed and successful tests
 * Crash when `Dead` is not returned by the inspect API
+* `ansible-galaxy` crash when a dependency was installed twice
 
 ## [0.0.5] - 2015-05-22
 ### Changed

@@ -93,8 +93,8 @@ class Container(object):
         return state
 
     def commit(self, repository, tag, message, **options):
-        self._client.commit(container=self.id, repository=repository,
-                            tag=tag, message=message, **options)
+        return self._client.commit(container=self.id, repository=repository,
+                                   tag=tag, message=message, **options)
 
     def content(self, filename):
         """

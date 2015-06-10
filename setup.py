@@ -41,7 +41,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ansible-role-test = ansibleroletest.cli:main'
+            'ansible-role-test = ansibleroletest.cli:cli',
+            'art = ansibleroletest.cli:cli'
         ]
     }
 )
