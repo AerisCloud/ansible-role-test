@@ -95,9 +95,14 @@ class TestFramework(object):
             shutil.rmtree(self.work_dir)
 
         self.print_header('TESTS RECAP')
+
+        res_color = 'yellow'
+        if self.res['failed'] > 0:
+            res_color = 'red'
+
         click.echo(
             '%-27s: %s    %s    %s' % (
-                click.style(self.role_name, fg='yellow'),
+                click.style(self.role_name, fg=res_color),
                 click.style('success=%d' % self.res['success'], fg='green'),
                 click.style('skip=%d' % self.res['skip'], fg='blue'),
                 click.style('failed=%d' % self.res['failed'], fg='red'),
@@ -189,7 +194,9 @@ class TestFramework(object):
             self.setup_ansible()
             self.install_role_deps()
 
+            test_count = 0
             for test in self.tests():
+                test_count += 1
                 if test.run(
                     extra_vars=extra_vars,
                     limit=limit,
@@ -204,7 +211,7 @@ class TestFramework(object):
                 else:
                     self.res['failed'] += 1
 
-            if self.res['success'] == 0:
+            if not test_count:
                 # no tests
                 self.print_header('NO TESTS')
                 click.secho('warning: no test found', fg='yellow')
