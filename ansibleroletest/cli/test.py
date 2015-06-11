@@ -115,7 +115,7 @@ def _load_config(conf, config_file=None):
     if not config_file:
         return
 
-    base = os.path.dirname(config_file.name)
+    base = os.path.dirname(os.path.realpath(config_file.name))
     content = yaml.load(config_file)
 
     # merge both objects if the original value is none
