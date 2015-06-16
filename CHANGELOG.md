@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## 0.1.0 - [unreleased]
+## [0.1.0] - 2015-06-16
 ### Added
 * Volumes declared on test containers can now be cached between calls by using
   the `--cache` flag (cached in your user's cache folder)
@@ -85,7 +85,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Initial version
 
-[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.5...HEAD
+[0.1.0]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.5...v0.1.0
 [0.0.5]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.2...v0.0.3
