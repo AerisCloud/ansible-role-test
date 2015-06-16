@@ -78,17 +78,23 @@ class Container(object):
             'exit_code': state_info['ExitCode'],
             'error': state_info['Error']
         }
+        # The state object changes all the time between API versions
         if state_info['OOMKilled']:
             state['status'] = OOMKilled
-        if state_info['Dead']:
+        elif 'Dead' in state_info and state_info['Dead']:
             state['status'] = Dead
-        if state_info['Paused']:
+        elif state_info['Paused']:
             state['status'] = Paused
-        if state_info['Running']:
+        elif state_info['Running']:
             state['status'] = Running
-        if state_info['Restarting']:
+        elif state_info['Restarting']:
             state['status'] = Restarting
+
         return state
+
+    def commit(self, repository, tag, message, **options):
+        return self._client.commit(container=self.id, repository=repository,
+                                   tag=tag, message=message, **options)
 
     def content(self, filename):
         """
@@ -190,6 +196,10 @@ class ContainerManager(object):
         self._containers = {}
 
     @property
+    def client(self):
+        return self._docker
+
+    @property
     def containers(self):
         return self._containers.copy()
 
@@ -198,8 +208,9 @@ class ContainerManager(object):
 
     def create(self, name, progress=None, start=False, **options):
         self._containers[name] = Container(self._docker, **options)
+        self._containers[name].create(progress=progress)
         if start:
-            self._containers[name].start(progress=progress, **options)
+            self._containers[name].start(**options)
         return self._containers[name]
 
     def destroy(self, names=None):

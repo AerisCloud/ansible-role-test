@@ -1,35 +1,26 @@
-DOCKER = $(patsubst %/Makefile,%,$(shell find docker -name Makefile))
+DOCKER = $(patsubst %/Makefile,%,$(shell find docker -mindepth 2 -name Makefile))
 DOCKER_PULL = $(patsubst %,%-pull,$(DOCKER))
-TARGET = "dist/ansible-role-test-$(shell uname -s)-$(shell uname -m)"
 
 VIRTUALENV ?= virtualenv
+PYTHON_ENV = $(shell test -d "venv" && echo "venv/bin/" || true)
+PYTHON ?= python
 
-.PHONY: clean build all docker docker-pull $(DOCKER) $(DOCKER_PULL)
+.PHONY: clean install all docker docker-pull $(DOCKER) $(DOCKER_PULL)
 
 all: dist
 
 clean:
-	rm -Rf venv ansibleroletest/*.pyc build dist ansible_role_test.egg-info ansible-role-test.spec
+	rm -Rf venv ansibleroletest/*.pyc build ansible_role_test.egg-info
 
-build: venv
-	venv/bin/python setup.py install
+install:
+	$(PYTHON_ENV)$(PYTHON) setup.py install
 
 # same as build but use symbolic links
 dev: venv
 	venv/bin/pip install --upgrade -e .
 
-dist: $(TARGET)
-
-$(TARGET): build venv/bin/pyinstaller
-	venv/bin/pyinstaller --clean --onefile bin/ansible-role-test
-	mv dist/ansible-role-test $(TARGET)
-
 venv:
-	$(VIRTUALENV) venv
-
-# pypi version is super old, use github version instead
-venv/bin/pyinstaller:
-	venv/bin/pip install git+https://github.com/pyinstaller/pyinstaller.git\#egg\=pyinstaller
+	$(VIRTUALENV) --python=$(PYTHON) venv
 
 # build the necessary docker images
 docker: $(DOCKER)

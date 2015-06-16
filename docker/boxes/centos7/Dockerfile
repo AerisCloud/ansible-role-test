@@ -4,8 +4,8 @@ FROM centos:7
 MAINTAINER Christophe Robin <crobin@nekoo.com>
 
 # Updating container (recommended by image provider)
-# Also provide dbus (installed by default on centos7 and used by some packages)
-RUN yum -y update && yum install -y dbus
+# Also provide some default packages
+RUN yum -y update && yum install -y dbus tar
 
 # Change root password to ansible
 RUN usermod --password XT7/q1XkHlXSs root
@@ -23,6 +23,10 @@ RUN sshd-keygen || true
 
 # Cleanup
 RUN yum clean all
+
+# Cache some folders
+VOLUME /var/cache/yum
+VOLUME /var/lib/yum
 
 # Expose SSH
 EXPOSE 22

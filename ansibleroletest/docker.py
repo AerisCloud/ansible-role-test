@@ -13,4 +13,4 @@ def client():
     kwargs = kwargs_from_env()
     if 'tls' in kwargs:
         kwargs['tls'].assert_hostname = False
-    return Client(**kwargs)
+    return Client(version='auto', **kwargs)

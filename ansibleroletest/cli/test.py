@@ -1,17 +1,12 @@
-from __future__ import print_function
-
 import click
-import logging
 import os
 import six
 import sys
 import yaml
 
-from .container import ContainerManager
-from .docker import client as docker_client
-from .framework import TestFramework
-
-logging.captureWarnings(True)
+from ansibleroletest.container import ContainerManager
+from ansibleroletest.docker import client as docker_client
+from ansibleroletest.framework import TestFramework
 
 
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
@@ -61,9 +56,15 @@ logging.captureWarnings(True)
               metavar='ANSIBLE_VERSION',
               help='The ansible version to use (either 1.8, 1.9 or latest)',
               type=click.Choice(['1.8', '1.9', 'latest']))
-@click.option('--privileged', is_flag=True, default=False)
+@click.option('--privileged', is_flag=True, default=False,
+              help='Run test containers in privileged mode (dangerous)')
+@click.option('--cache', is_flag=True,
+              help='Cache yum/apt folders on the host')
+@click.option('--save', default=None, type=click.Choice(['failed', 'successful', 'all']),
+              help='Save containers, can be either one of "failed", '
+                   '"successful" and "all"')
 @click.argument('role')
-def main(role,
+def test(role,
          config,
          # path args
          roles_path, library_path, plugins_action_path,
@@ -71,9 +72,9 @@ def main(role,
          # ansible-playbook args
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
-         ansible_version, privileged):
+         ansible_version, privileged, cache, save):
     """
-    ansible-role-test is a docker based testing utility for ansible roles.
+    Run tests
 
     ROLE can be either be a local path, a git repository or an ansible-galaxy
     role name.
@@ -91,15 +92,24 @@ def main(role,
 
         _load_config(ansible_paths, config)
 
-        framework = TestFramework(docker, role, ansible_paths, ansible_version)
+        framework = TestFramework(docker, role, ansible_paths,
+                                  ansible_version)
         res = framework.run(
             extra_vars=extra_vars,
             limit=limit,
             skip_tags=skip_tags,
             tags=tags,
             verbosity=verbosity,
-            privileged=privileged
+            privileged=privileged,
+            cache=cache,
+            save=save
         )
+
+        if res != 0 and save != 'failed':
+            click.secho('''
+info: some of the tests have failed. If you wish to inspect the failed
+      containers, rerun the command while adding the --save=failed flag
+      to your command line.''', fg='blue')
     sys.exit(res)
 
 
@@ -107,7 +117,7 @@ def _load_config(conf, config_file=None):
     if not config_file:
         return
 
-    base = os.path.dirname(config_file.name)
+    base = os.path.dirname(os.path.realpath(config_file.name))
     content = yaml.load(config_file)
 
     # merge both objects if the original value is none
@@ -119,6 +129,3 @@ def _load_config(conf, config_file=None):
                 obj_to[k] = os.path.join(base, obj_from[k])
 
     _update(content, conf)
-
-if __name__ == '__main__':
-    main()

@@ -26,6 +26,10 @@ RUN /etc/init.d/ssh start && /etc/init.d/ssh stop
 # Cleanup
 RUN apt-get clean
 
+# Cache some folders
+VOLUME /var/cache/apt
+VOLUME /var/lib/apt
+
 # Expose SSH
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

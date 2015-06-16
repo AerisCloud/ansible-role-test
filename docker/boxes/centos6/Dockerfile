@@ -4,7 +4,7 @@ FROM centos:6
 MAINTAINER Christophe Robin <crobin@nekoo.com>
 
 # Updating container (recommended by image provider)
-RUN yum -y update
+RUN yum -y update && yum install -y which tar
 
 # Change root password to ansible
 RUN usermod --password XT7/q1XkHlXSs root
@@ -29,6 +29,10 @@ RUN /etc/init.d/sshd stop
 
 # Cleanup
 RUN yum clean all
+
+# Cache some folders
+VOLUME /var/cache/yum
+VOLUME /var/lib/yum
 
 # Expose SSH
 EXPOSE 22

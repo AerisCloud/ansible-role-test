@@ -1,18 +1,27 @@
 import click
+import datetime
+import json
 import os
 import six
+import slugify
 import yaml
 
 from .container import ExecuteReturnCodeError
-from.utils import pull_image_progress
+from .utils import pull_image_progress, cache_dir
 
 DEFAULT_CONTAINERS = {
-    'centos6': 'centos:6',
-    'centos7': 'centos:7',
+    'centos-6': 'centos:6',
+    'centos-7': 'centos:7',
     'debian-wheezy': 'debian:wheezy',
     'debian-jessie': 'debian:jessie',
     'ubuntu-lts': 'ubuntu:lts',
-    'ubuntu15': 'ubuntu:15.04'
+    'ubuntu-15': 'ubuntu:15.04'
+}
+
+DEFAULT_GROUPS = {
+    'centos': ['centos-6', 'centos-7'],
+    'debian': ['debian-wheezy', 'debian-jessie'],
+    'ubuntu': ['ubuntu-lts', 'ubuntu-15']
 }
 
 
@@ -32,19 +41,34 @@ class Test(object):
         Test._counter += 1
         self.id = Test._counter
 
+        self.containers = DEFAULT_CONTAINERS
+        self.groups = DEFAULT_GROUPS
+
         self.inventory_file = 'inventory_%d' % self.id
         self.playbook_file = 'test_%d.yml' % self.id
+        self.receipts_file = 'receipts_%d.yml' % self.id
 
     @property
     def inventory(self):
         """
         Returns the inventory content based on the images enabled in the test
         """
-        inventory = '[test]\n'
-        for name, container in six.iteritems(self.docker.containers):
-            inventory += '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
-                         'ansible_ssh_pass=ansible\n' \
-                .format(name, container.internal_ip)
+        inventory = ''
+        for name, info in six.iteritems(self.containers):
+            entry = '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
+                    'ansible_ssh_pass=ansible' \
+                .format(name, info['container'].internal_ip)
+            for key, val in six.iteritems(info.get('vars', {})):
+                entry += ' {key}={val}'.format(key=key, val=repr(val))
+            inventory += '%s\n' % entry
+
+        # create groups
+        for group, names in six.iteritems(self.groups):
+            inventory += '\n[%s]\n' % group
+            for name in names:
+                inventory += '{0}\n' \
+                    .format(name)
+
         return inventory
 
     @property
@@ -56,17 +80,61 @@ class Test(object):
             return self.test['name']
         return 'Test #%d' % self.id
 
-    def cleanup(self):
+    def cleanup(self, save=None):
         """
         Destroy all the test containers
         """
+
+        # search for failed hosts in the receipts
+        save_containers = []
+        receipt_file = os.path.join(self.framework.work_dir,
+                                    self.receipts_file)
+        if save and os.path.exists(receipt_file):
+            with open(receipt_file) as fd:
+                data = json.load(fd)
+                for hostname, result in six.iteritems(data):
+                    if save == 'all' or \
+                            (save == 'failed' and result['stats']['failed']) or \
+                            (save == 'successful' and not result['stats']['failed']):
+                        save_containers.append({
+                            'name': hostname,
+                            'status': result['stats']['failed'] and 'failed' or 'successful',
+                            'task': result['tasks'].pop(),
+                            'metadata': result
+                        })
+
+        # and commit any failed host for inspection
+        if save_containers:
+            self.framework.print_header('SAVING CONTAINERS')
+            for details in save_containers:
+                container = self.docker.containers[details['name']]
+                repo = 'art/{role_name}.{container}'.format(
+                    role_name=self.framework.role_name,
+                    container=details['name']
+                )
+                tag = '{status}-{date}'.format(
+                    status=details['status'],
+                    date=datetime.datetime.now().strftime('%s')
+                )
+                res = container.commit(repo, tag, json.dumps(details['metadata']))
+                click.secho(
+                    'ok: saved [%s] as [%s:%s]\n    id: %s   commit: %s' % (
+                        details['name'],
+                        repo,
+                        tag,
+                        res.get('Id')[:12],
+                        details['task']['name']
+                    ),
+                    fg='green')
+
         self.framework.print_header('CLEANING TEST CONTAINERS')
         for name, container in six.iteritems(self.docker.containers):
             self.docker.destroy(name)
             click.secho('ok: [%s]' % container.image, fg='green')
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False):
+            tags=None, verbosity=None, privileged=False, cache=False,
+            save=None):
         """
         Start the containers and run the test playbook
         :param extra_vars: extra vars to pass to ansible
@@ -78,7 +146,7 @@ class Test(object):
         """
         try:
             self.framework.print_header('TEST [%s]' % self.name)
-            self.setup(limit, privileged)
+            self.setup(limit, privileged, cache)
 
             self.framework.print_header('RUNNING TESTS')
 
@@ -105,20 +173,31 @@ class Test(object):
 
             ansible_cmd.append(os.path.join('/work', self.playbook_file))
 
-            self.framework.stream(*ansible_cmd)
+            # docker's exec_create call doesn't allow you to set environment
+            # variables, hence the call to sh
+            final_cmd = ['sh', '-c', 'ANSIBLE_RECEIPTS_FILE="%s" %s' % (
+                os.path.join('/work', self.receipts_file),
+                ' '.join(map(six.moves.shlex_quote, ansible_cmd))
+            )]
+
+            self.framework.stream(*final_cmd)
+
+            return True
         except ExecuteReturnCodeError as e:
             click.secho(str(e), fg='red')
-        finally:
-            self.cleanup()
 
-    def setup(self, limit=None, privileged=False):
+            return False
+        finally:
+            self.cleanup(save=save)
+
+    def setup(self, limit=None, privileged=False, cache=False):
         """
         Does the initial container and playbook setup/generation
         :param limit:
         :param privileged:
         """
         self.setup_playbook()
-        self.start_containers(limit, privileged)
+        self.start_containers(limit, privileged, cache)
         self.setup_inventory()
 
     def setup_playbook(self):
@@ -146,7 +225,7 @@ class Test(object):
         with open(framework_file, 'w') as fd:
             fd.write(self.inventory)
 
-    def start_containers(self, limit=None, privileged=False):
+    def start_containers(self, limit=None, privileged=False, cache=False):
         """
         Starts the containers, if not containers are specified in the test
         starts all containers available (centos/debian/ubuntu)
@@ -159,19 +238,56 @@ class Test(object):
         #       containers based on the advertised supported operating systems,
         #       the issue is that the format is kinda rough, like redhat and
         #       centos are merged under EL, and some distros are not available
-        if 'containers' not in self.test:
-            self.test['containers'] = DEFAULT_CONTAINERS
+        if 'containers' in self.test:
+            self.containers = self.test['containers']
+            self.groups = {}
+
+        if 'groups' in self.test:
+            self.groups.update(self.test['groups'])
 
         # do not start containers that do not match the given limit
         if limit and limit != 'all':
-            unwanted = set(self.test['containers']) - set(limit.split(','))
-            for unwanted_container in unwanted:
-                del self.test['containers'][unwanted_container]
+            allowed = []
+            for allowed_name in limit.split(','):
+                if allowed_name in self.containers:
+                    allowed.append(allowed_name)
+                elif allowed_name in self.groups:
+                    allowed += self.groups[allowed_name]
+            for container_name in self.containers.copy():
+                if container_name not in allowed:
+                    del self.containers[container_name]
 
-        for name, image in six.iteritems(self.test['containers']):
-            full_image = 'aeriscloud/ansible-%s' % image
-            self.docker.create(name, image=full_image).start(
-                privileged=privileged,
-                progress=pull_image_progress()
+        for name, info in six.iteritems(self.containers):
+            if isinstance(info, six.string_types):
+                info = {
+                    'image': info
+                }
+                self.containers[name] = info
+
+            full_image = 'aeriscloud/ansible-%s' % info['image']
+
+            container = self.docker.create(name, image=full_image,
+                                           progress=pull_image_progress())
+
+            # we need to create the VM first as images are pulled at that time
+            image_info = self.docker.client.inspect_image(full_image)
+            bindings = {}
+
+            # if the image has volume sets, cache them
+            if cache and 'Config' in image_info \
+                    and 'Volumes' in image_info['Config']\
+                    and image_info['Config']['Volumes']:
+                for volume in image_info['Config']['Volumes']:
+                    volume_cache_dir = os.path.join(
+                        cache_dir,
+                        slugify.slugify(full_image),
+                        volume[1:]
+                    )
+                    bindings[volume_cache_dir] = volume
+
+            container.start(
+                binds=bindings,
+                privileged=privileged
             )
+            info['container'] = container
             click.secho('ok: [%s]' % full_image, fg='green')

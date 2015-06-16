@@ -1,4 +1,3 @@
-import appdirs
 import click
 import giturlparse
 import os
@@ -11,7 +10,7 @@ import yaml
 
 from .container import ExecuteReturnCodeError
 from .test import Test
-from .utils import pull_image_progress
+from .utils import pull_image_progress, cache_dir
 
 
 def mktmpdir():
@@ -19,8 +18,7 @@ def mktmpdir():
     Due to OSX and boot2docker, I can't use the tempdir module as /tmp cannot
     be mounted in boot2docker (only /Users/<user> is available)
     """
-    base_dir = appdirs.user_cache_dir('ansible_role_test', 'aeriscloud')
-    tmp_dir = os.path.join(base_dir, uuid.uuid4().hex)
+    tmp_dir = os.path.join(cache_dir, 'tmp', uuid.uuid4().hex)
     os.makedirs(tmp_dir)
     return tmp_dir
 
@@ -47,7 +45,9 @@ class TestFramework(object):
         # check the role type
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
-        self.bindings = {self.work_dir: {'bind': '/work', 'ro': True}}
+        self.bindings = {
+            self.work_dir: {'bind': '/work', 'ro': False},
+        }
         self.type = TestFramework.TYPE_GALAXY
 
         self.ansible_paths = {
@@ -91,12 +91,18 @@ class TestFramework(object):
             click.secho('ok: [%s]' % container.image, fg='green')
 
         # remove temp folder
-        shutil.rmtree(self.work_dir)
+        if os.path.exists(self.work_dir):
+            shutil.rmtree(self.work_dir)
 
         self.print_header('TESTS RECAP')
+
+        res_color = 'yellow'
+        if self.res['failed'] > 0:
+            res_color = 'red'
+
         click.echo(
             '%-27s: %s    %s    %s' % (
-                click.style(self.role_name, fg='yellow'),
+                click.style(self.role_name, fg=res_color),
                 click.style('success=%d' % self.res['success'], fg='green'),
                 click.style('skip=%d' % self.res['skip'], fg='blue'),
                 click.style('failed=%d' % self.res['failed'], fg='red'),
@@ -127,10 +133,9 @@ class TestFramework(object):
                     continue
 
                 # try to get a role on galaxy if we do not have it
-                role_path = os.path.join(self.ansible_paths['roles'],
-                                         role_name)
                 has_role_locally = self.ansible_paths['roles'] and \
-                    os.path.exists(role_path)
+                    os.path.exists(os.path.join(self.ansible_paths['roles'],
+                                                role_name))
 
                 if '.' in role_name and not has_role_locally:
                     self.print_header('DEPENDENCY: [%s]' % role_name)
@@ -154,7 +159,15 @@ class TestFramework(object):
 
                 click.secho('ok: [%s]' % role_name, fg='green')
 
-                installed.append(role_name)
+                # because ansible-galaxy might have installed sub deps, just list
+                # the folders in /etc/ansible/roles
+                installed = [
+                    os.path.basename(file)
+                    for file in self.ansible.execute(
+                        ['find', '/etc/ansible/roles/', '-maxdepth', '1', '-type', 'd']
+                    ).split('\n')
+                    if '.' in os.path.basename(file)
+                ]
 
     @staticmethod
     def print_header(text):
@@ -166,7 +179,8 @@ class TestFramework(object):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False):
+            tags=None, verbosity=None, privileged=False, cache=False,
+            save=None):
         """
         Run all the tests
         :param extra_vars: extra vars to pass to ansible
@@ -182,18 +196,24 @@ class TestFramework(object):
             self.setup_ansible()
             self.install_role_deps()
 
+            test_count = 0
             for test in self.tests():
-                test.run(
+                test_count += 1
+                if test.run(
                     extra_vars=extra_vars,
                     limit=limit,
                     skip_tags=skip_tags,
                     tags=tags,
                     verbosity=verbosity,
-                    privileged=privileged
-                )
-                self.res['success'] += 1
+                    privileged=privileged,
+                    cache=cache,
+                    save=save
+                ):
+                    self.res['success'] += 1
+                else:
+                    self.res['failed'] += 1
 
-            if self.res['success'] == 0:
+            if not test_count:
                 # no tests
                 self.print_header('NO TESTS')
                 click.secho('warning: no test found', fg='yellow')
