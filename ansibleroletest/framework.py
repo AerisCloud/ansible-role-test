@@ -163,7 +163,9 @@ class TestFramework(object):
                 # the folders in /etc/ansible/roles
                 installed = [
                     os.path.basename(file)
-                    for file in self.ansible.execute(['find', '/etc/ansible/roles/', '-maxdepth', '1', '-type', 'd']).split('\n')
+                    for file in self.ansible.execute(
+                        ['find', '/etc/ansible/roles/', '-maxdepth', '1', '-type', 'd']
+                    ).split('\n')
                     if '.' in os.path.basename(file)
                 ]
 

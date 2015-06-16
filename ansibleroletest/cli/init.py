@@ -2,6 +2,7 @@ import click
 import os
 import sys
 
+
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
 @click.argument('path', default='.')
 def init(path):

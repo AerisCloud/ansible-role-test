@@ -8,6 +8,7 @@ from ansibleroletest.container import ContainerManager
 from ansibleroletest.docker import client as docker_client
 from ansibleroletest.framework import TestFramework
 
+
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
 # path options
 @click.option('-c', '--config', default=None,
@@ -110,6 +111,7 @@ info: some of the tests have failed. If you wish to inspect the failed
       containers, rerun the command while adding the --save=failed flag
       to your command line.''', fg='blue')
     sys.exit(res)
+
 
 def _load_config(conf, config_file=None):
     if not config_file:

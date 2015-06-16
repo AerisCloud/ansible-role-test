@@ -8,12 +8,14 @@ from docker.errors import APIError
 from ansibleroletest.docker import client as docker_client
 from ansibleroletest.framework import TestFramework
 
+
 @click.group(context_settings={'help_option_names': ['-h', '--help']})
 def snapshots():
     """
     Manipulate saved containers
     """
     pass
+
 
 @snapshots.command(name='list', context_settings={'help_option_names': ['-h', '--help']})
 @click.option('-f', '--filter', help='Filter by role name')
@@ -161,7 +163,8 @@ def snapshots_view(image):
 
 def _resolve_image(docker, image):
     """
-    If no image is provided, list them and ask the user to choose, otherwise check that the repo name is in it
+    If no image is provided, list them and ask the user to choose,
+    otherwise check that the repo name is in it
     :param docker:
     :param image:
     :return:

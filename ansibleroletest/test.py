@@ -56,7 +56,7 @@ class Test(object):
         inventory = ''
         for name, info in six.iteritems(self.containers):
             entry = '{0} ansible_ssh_host={1} ansible_ssh_user=ansible ' \
-                         'ansible_ssh_pass=ansible' \
+                    'ansible_ssh_pass=ansible' \
                 .format(name, info['container'].internal_ip)
             for key, val in six.iteritems(info.get('vars', {})):
                 entry += ' {key}={val}'.format(key=key, val=repr(val))
