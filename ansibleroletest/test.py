@@ -271,7 +271,9 @@ class Test(object):
 
             # we need to create the VM first as images are pulled at that time
             image_info = self.docker.client.inspect_image(full_image)
-            bindings = {}
+            bindings = {
+                '/sys/fs/cgroup': {'bind': '/sys/fs/cgroup', 'ro': True},
+            }
 
             # if the image has volume sets, cache them
             if cache and 'Config' in image_info \
