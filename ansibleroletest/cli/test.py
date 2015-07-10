@@ -126,6 +126,9 @@ def _load_config(conf, config_file=None):
             if isinstance(v, dict):
                 _update(obj_from[k], v)
             elif v is None and k in obj_from and obj_from[k]:
-                obj_to[k] = os.path.join(base, obj_from[k])
+                if obj_from[k].startswith('/'):
+                    obj_to[k] = os.path.join(obj_from[k])
+                else:
+                    obj_to[k] = os.path.join(base, obj_from[k])
 
     _update(content, conf)
