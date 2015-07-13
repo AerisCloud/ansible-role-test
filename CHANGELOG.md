@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 0.2.0 - [unreleased]
+### Added
+* Containers can now use custom images outside of the aeriscloud namespace
+
+### Fixed
+* `fr` instead or `fg` being used in some `click.secho` calls
+* Properly show progress when downloading ansible image
+* `systemd` for Centos 7 now properly works
+* Unicode issue when reading progress from docker on Python 3.x
+
+### Removed
+* `--cache` flag was removed due to it acting weird and the performance gain
+  being nearly non-existent
+
 ## [0.1.0] - 2015-06-16
 ### Added
 * Volumes declared on test containers can now be cached between calls by using
@@ -85,6 +99,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Initial version
 
+[unreleased]: https://github.com/AerisCloud/ansible-role-test/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.5...v0.1.0
 [0.0.5]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/AerisCloud/ansible-role-test/compare/v0.0.3...v0.0.4
