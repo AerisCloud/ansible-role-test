@@ -25,9 +25,7 @@ RUN systemctl enable sshd
 # Cleanup
 RUN yum clean all
 
-# Cache some folders
-VOLUME /var/cache/yum
-VOLUME /var/lib/yum
+# Used by systemd
 VOLUME /sys/fs/cgroup
 
 # Expose SSH

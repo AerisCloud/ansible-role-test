@@ -179,7 +179,7 @@ class TestFramework(object):
         click.echo('\n' + text + ' ' + ((78 - len(text)) * '*'))
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False, cache=False,
+            tags=None, verbosity=None, privileged=False,
             save=None):
         """
         Run all the tests
@@ -206,7 +206,6 @@ class TestFramework(object):
                     tags=tags,
                     verbosity=verbosity,
                     privileged=privileged,
-                    cache=cache,
                     save=save
                 ):
                     self.res['success'] += 1
@@ -241,10 +240,10 @@ class TestFramework(object):
         image_name = 'aeriscloud/ansible:' + self.ansible_version
         self.ansible = self.docker.create('ansible', tty=True,
                                           image=image_name,
-                                          environment=self.environment)
+                                          environment=self.environment,
+                                          progress=pull_image_progress())
 
-        self.ansible.start(binds=self.bindings,
-                           progress=pull_image_progress())
+        self.ansible.start(binds=self.bindings)
 
         if self.ansible.pulled:
             click.secho('pulled: [%s]' % self.ansible.image, fg='yellow')

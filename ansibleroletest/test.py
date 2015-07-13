@@ -133,7 +133,7 @@ class Test(object):
             click.secho('ok: [%s]' % container.image, fg='green')
 
     def run(self, extra_vars=None, limit=None, skip_tags=None,
-            tags=None, verbosity=None, privileged=False, cache=False,
+            tags=None, verbosity=None, privileged=False,
             save=None):
         """
         Start the containers and run the test playbook
@@ -146,7 +146,7 @@ class Test(object):
         """
         try:
             self.framework.print_header('TEST [%s]' % self.name)
-            self.setup(limit, privileged, cache)
+            self.setup(limit, privileged)
 
             self.framework.print_header('RUNNING TESTS')
 
@@ -190,14 +190,14 @@ class Test(object):
         finally:
             self.cleanup(save=save)
 
-    def setup(self, limit=None, privileged=False, cache=False):
+    def setup(self, limit=None, privileged=False):
         """
         Does the initial container and playbook setup/generation
         :param limit:
         :param privileged:
         """
         self.setup_playbook()
-        self.start_containers(limit, privileged, cache)
+        self.start_containers(limit, privileged)
         self.setup_inventory()
 
     def setup_playbook(self):
@@ -225,7 +225,7 @@ class Test(object):
         with open(framework_file, 'w') as fd:
             fd.write(self.inventory)
 
-    def start_containers(self, limit=None, privileged=False, cache=False):
+    def start_containers(self, limit=None, privileged=False):
         """
         Starts the containers, if not containers are specified in the test
         starts all containers available (centos/debian/ubuntu)
@@ -268,26 +268,14 @@ class Test(object):
             if '/' not in full_image:
                 full_image = 'aeriscloud/ansible-%s' % info['image']
 
+            # we need to create the VM first as images are pulled at that time
             container = self.docker.create(name, image=full_image,
                                            progress=pull_image_progress())
 
-            # we need to create the VM first as images are pulled at that time
-            image_info = self.docker.client.inspect_image(full_image)
+            # this binding allows systemd to properly start in a container
             bindings = {
                 '/sys/fs/cgroup': {'bind': '/sys/fs/cgroup', 'ro': True},
             }
-
-            # if the image has volume sets, cache them
-            if cache and 'Config' in image_info \
-                    and 'Volumes' in image_info['Config']\
-                    and image_info['Config']['Volumes']:
-                for volume in image_info['Config']['Volumes']:
-                    volume_cache_dir = os.path.join(
-                        cache_dir,
-                        slugify.slugify(full_image),
-                        volume[1:]
-                    )
-                    bindings[volume_cache_dir] = volume
 
             container.start(
                 binds=bindings,
