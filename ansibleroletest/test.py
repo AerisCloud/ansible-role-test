@@ -264,7 +264,9 @@ class Test(object):
                 }
                 self.containers[name] = info
 
-            full_image = 'aeriscloud/ansible-%s' % info['image']
+            full_image = info['image']
+            if '/' not in full_image:
+                full_image = 'aeriscloud/ansible-%s' % info['image']
 
             container = self.docker.create(name, image=full_image,
                                            progress=pull_image_progress())
