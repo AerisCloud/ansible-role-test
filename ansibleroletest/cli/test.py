@@ -58,9 +58,9 @@ from ansibleroletest.framework import TestFramework
               type=click.Choice(['1.8', '1.9', 'latest']))
 @click.option('--privileged', is_flag=True, default=False,
               help='Run test containers in privileged mode (dangerous)')
-@click.option('--save', default=None, type=click.Choice(['failed', 'successful', 'all']),
+@click.option('--save', default=None, type=click.Choice(['failed', 'successful', 'unreachable', 'all']),
               help='Save containers, can be either one of "failed", '
-                   '"successful" and "all"')
+                   '"successful", "unreachable" and "all"')
 @click.argument('role')
 def test(role,
          config,

@@ -95,7 +95,8 @@ class Test(object):
                 for hostname, result in six.iteritems(data):
                     if save == 'all' or \
                             (save == 'failed' and result['stats']['failed']) or \
-                            (save == 'successful' and not result['stats']['failed']):
+                            (save == 'successful' and not result['stats']['failed']) or \
+                            (save == 'unreachable' and result['stats']['unreachable']):
                         save_containers.append({
                             'name': hostname,
                             'status': result['stats']['failed'] and 'failed' or 'successful',

@@ -1,5 +1,6 @@
 DOCKER = $(patsubst %/Makefile,%,$(shell find docker -mindepth 2 -name Makefile))
 DOCKER_PULL = $(patsubst %,%-pull,$(DOCKER))
+DOCKER_OPTS ?= 
 
 VIRTUALENV ?= virtualenv
 PYTHON_ENV = $(shell test -d "venv" && echo "venv/bin/" || true)
@@ -31,4 +32,4 @@ $(DOCKER):
 	make -C $@
 
 $(DOCKER_PULL):
-	make -C $(patsubst %-pull,%,$@) pull
+	DOCKER_OPTS="$(DOCKER_OPTS)" make -C $(patsubst %-pull,%,$@) pull

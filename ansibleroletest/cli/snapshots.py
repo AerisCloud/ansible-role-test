@@ -81,8 +81,6 @@ def snapshots_purge():
         if not snapshots:
             continue
 
-        click.echo('')
-
         for snapshot in snapshots:
             click.echo('Deleting %s ... ' % snapshot, nl=False)
             try:
