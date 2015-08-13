@@ -25,6 +25,9 @@ RUN systemctl enable sshd
 # Cleanup
 RUN yum clean all
 
+# Allow sshing in
+RUN sed -i 's/^UsePrivilegeSeparation.*/UsePrivilegeSeparation no/' /etc/ssh/sshd_config
+
 # Used by systemd
 VOLUME /sys/fs/cgroup
 
