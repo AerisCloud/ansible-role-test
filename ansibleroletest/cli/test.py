@@ -58,11 +58,9 @@ from ansibleroletest.framework import TestFramework
               type=click.Choice(['1.8', '1.9', 'latest']))
 @click.option('--privileged', is_flag=True, default=False,
               help='Run test containers in privileged mode (dangerous)')
-@click.option('--cache', is_flag=True,
-              help='Cache yum/apt folders on the host')
-@click.option('--save', default=None, type=click.Choice(['failed', 'successful', 'all']),
+@click.option('--save', default=None, type=click.Choice(['failed', 'successful', 'unreachable', 'all']),
               help='Save containers, can be either one of "failed", '
-                   '"successful" and "all"')
+                   '"successful", "unreachable" and "all"')
 @click.argument('role')
 def test(role,
          config,
@@ -72,7 +70,7 @@ def test(role,
          # ansible-playbook args
          extra_vars, limit, skip_tags, tags, verbosity,
          # misc
-         ansible_version, privileged, cache, save):
+         ansible_version, privileged, save):
     """
     Run tests
 
@@ -101,7 +99,6 @@ def test(role,
             tags=tags,
             verbosity=verbosity,
             privileged=privileged,
-            cache=cache,
             save=save
         )
 
@@ -126,6 +123,9 @@ def _load_config(conf, config_file=None):
             if isinstance(v, dict):
                 _update(obj_from[k], v)
             elif v is None and k in obj_from and obj_from[k]:
-                obj_to[k] = os.path.join(base, obj_from[k])
+                if obj_from[k].startswith('/'):
+                    obj_to[k] = os.path.join(obj_from[k])
+                else:
+                    obj_to[k] = os.path.join(base, obj_from[k])
 
     _update(content, conf)

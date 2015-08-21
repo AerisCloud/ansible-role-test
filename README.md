@@ -7,6 +7,7 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 
 * docker
 * python 2.7+, 3.x
+* a host running systemd is highly recommended, see notice below
 
 ## Installation
 
@@ -14,6 +15,26 @@ disposable boxes that can be provisioned by a test ansible playbook via ssh.
 * Optional: Activate your virtualenv or run `make venv` to create a local one
 * Run `make install`
 * Either run `ansible-role-test` or `venv/bin/ansible-role-test`
+
+## Notice for users not running on systemd-enabled systems
+
+When using `boot2docker` or a linux distribution not running `systemd`, CentOS 7
+might not start properly due to missing cgroups. The course of action in this case
+is to create manually the `/sys/fs/cgroup/systemd` folder either on your host
+(if running linux) or inside your `boot2docker` VM.
+
+OSX:
+
+```bash
+boot2docker ssh
+sudo mkdir /sys/fs/cgroup/systemd
+```
+
+Linux (without systemd):
+
+```bash
+sudo mkdir /sys/fs/cgroup/systemd
+```
 
 ## Development
 

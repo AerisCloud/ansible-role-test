@@ -81,15 +81,13 @@ def snapshots_purge():
         if not snapshots:
             continue
 
-        click.echo('')
-
         for snapshot in snapshots:
             click.echo('Deleting %s ... ' % snapshot, nl=False)
             try:
                 docker.remove_image(snapshot)
                 click.secho('DONE', fg='green')
             except APIError as e:
-                click.secho('FAILED [%s]' % e.explanation.decode('utf-8'), fr='red')
+                click.secho('FAILED [%s]' % e.explanation.decode('utf-8'), fg='red')
 
 
 @snapshots.command(name='rm', context_settings={'help_option_names': ['-h', '--help']})
@@ -102,12 +100,16 @@ def snapshots_rm(image):
 
     image, image_name = _resolve_image(docker, image)
 
+    if not image and not image_name:
+        click.secho('error: no image to delete', err=True, fg='red')
+        sys.exit(1)
+
     click.echo('Deleting %s ... ' % image_name, nl=False)
     try:
         docker.remove_image(image_name)
         click.secho('DONE', fg='green')
     except APIError as e:
-        click.secho('FAILED [%s]' % e.explanation.decode('utf-8'), fr='red')
+        click.secho('FAILED [%s]' % e.explanation.decode('utf-8'), fg='red')
 
 
 @snapshots.command(name='view', context_settings={'help_option_names': ['-h', '--help']})
@@ -129,7 +131,7 @@ def snapshots_view(image):
     try:
         play = json.loads(res.get('Comment'))
     except ValueError as e:
-        click.secho('error: %s' % str(e), fr='red')
+        click.secho('error: %s' % str(e), fg='red')
         sys.exit(1)
 
     repo, tag = image_name.split(':')
@@ -179,8 +181,7 @@ def _resolve_image(docker, image):
             ]
 
         if not snapshots:
-            click.echo('No snapshots found')
-            return
+            return None, None
 
         if len(snapshots) > 1:
             for idx in range(0, len(snapshots)):

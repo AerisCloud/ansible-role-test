@@ -15,7 +15,7 @@ def pull_image_progress():
             click.echo('')
             return
 
-        progress = json.loads(progress)
+        progress = json.loads(progress.decode('utf-8'))
 
         if 'progressDetail' not in progress or 'status' not in progress:
             return

@@ -32,10 +32,6 @@ RUN apt-get clean
 # Fix broken packages
 RUN echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
 
-# Cache some folders
-VOLUME /var/cache/apt
-VOLUME /var/lib/apt
-
 # Expose SSH
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

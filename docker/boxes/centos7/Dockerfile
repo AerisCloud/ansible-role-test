@@ -20,14 +20,17 @@ RUN echo 'ansible	ALL=(ALL)	NOPASSWD: ALL' >> /etc/sudoers
 # Install sshd and generate ssh keys
 RUN yum -y install openssh-server
 RUN sshd-keygen || true
+RUN systemctl enable sshd
 
 # Cleanup
 RUN yum clean all
 
-# Cache some folders
-VOLUME /var/cache/yum
-VOLUME /var/lib/yum
+# Allow sshing in
+RUN sed -i 's/^UsePrivilegeSeparation.*/UsePrivilegeSeparation no/' /etc/ssh/sshd_config
+
+# Used by systemd
+VOLUME /sys/fs/cgroup
 
 # Expose SSH
 EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["/sbin/init"]
