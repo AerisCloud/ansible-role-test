@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:trusty
 
 RUN apt-get update \
     && apt-get install -y python \
@@ -12,7 +12,7 @@ RUN apt-get update \
                           git \
     && rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
-RUN pip install ansible
+RUN pip install 'ansible >= 1.9.0, < 2.0'
 RUN echo "[defaults]\nhost_key_checking = False" > ~/.ansible.cfg
 RUN mkdir ~/.ssh && echo "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
 RUN mkdir -p /etc/ansible/plugins/callback_plugins

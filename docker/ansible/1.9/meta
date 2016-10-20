@@ -1,2 +1,2 @@
 IMAGE=aeriscloud/ansible
-TAGS=2.1 latest
+TAGS=1.9
