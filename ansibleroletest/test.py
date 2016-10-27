@@ -269,18 +269,17 @@ class Test(object):
             if '/' not in full_image:
                 full_image = 'aeriscloud/ansible-%s' % info['image']
 
+            # this binding allows systemd to properly start in a container
+            bindings = [':'.join(['/sys/fs/cgroup', '/sys/fs/cgroup', 'ro'])]
+
             # we need to create the VM first as images are pulled at that time
             container = self.docker.create(name, image=full_image,
-                                           progress=pull_image_progress())
+                                           progress=pull_image_progress(),
+                                           host_config={
+                                              'Binds': bindings,
+                                              'Privileged': privileged
+                                           })
 
-            # this binding allows systemd to properly start in a container
-            bindings = {
-                '/sys/fs/cgroup': {'bind': '/sys/fs/cgroup', 'ro': True},
-            }
-
-            container.start(
-                binds=bindings,
-                privileged=privileged
-            )
+            container.start()
             info['container'] = container
             click.secho('ok: [%s]' % full_image, fg='green')

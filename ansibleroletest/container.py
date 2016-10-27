@@ -21,7 +21,10 @@ class Container(object):
         self._client = client
         self._props = {
             'image': image,
-            'detach': detach
+            'detach': detach,
+            'host_config': {
+                'NetworkMode': 'default'
+            }
         }
         self._props.update(options)
         self._host_ip = None

@@ -45,9 +45,9 @@ class TestFramework(object):
         # check the role type
         self.role_name = self.role
         self.role_path = '/etc/ansible/roles/{0}'.format(role)
-        self.bindings = {
-            self.work_dir: {'bind': '/work', 'ro': False},
-        }
+        self.bindings = [
+            ':'.join([self.work_dir, '/work']),
+        ]
         self.type = TestFramework.TYPE_GALAXY
 
         self.ansible_paths = {
@@ -66,10 +66,7 @@ class TestFramework(object):
             role = os.path.realpath(role)
             self.role_name = os.path.basename(role)
             self.role_path = '/etc/ansible/roles/{0}'.format(self.role_name)
-            self.bindings[os.path.realpath(self.role)] = {
-                'bind': self.role_path,
-                'ro': True
-            }
+            self.bindings.append(':'.join([os.path.realpath(self.role), self.role_path, 'ro']))
             self.type = TestFramework.TYPE_LOCAL
         elif role.endswith('.git') or '.git#' in role:
             # role is a git repository
@@ -241,9 +238,12 @@ class TestFramework(object):
         self.ansible = self.docker.create('ansible', tty=True,
                                           image=image_name,
                                           environment=self.environment,
-                                          progress=pull_image_progress())
+                                          progress=pull_image_progress(),
+                                          host_config={
+                                              'Binds': self.bindings
+                                          })
 
-        self.ansible.start(binds=self.bindings)
+        self.ansible.start()
 
         if self.ansible.pulled:
             click.secho('pulled: [%s]' % self.ansible.image, fg='yellow')
@@ -270,35 +270,32 @@ class TestFramework(object):
         Setup ansible bidings based on the configuration passed
         """
         if self.ansible_paths['roles']:
-            self.bindings[self.ansible_paths['roles']] = {
-                'bind': '/roles',
-                'ro': True
-            }
+            self.bindings.append(':'.join([self.ansible_paths['roles'], '/roles', 'ro']))
 
         if self.ansible_paths['library']:
-            self.bindings[self.ansible_paths['library']] = {
-                'bind': '/usr/share/ansible/library',
-                'ro': True
-            }
+            self.bindings.append(':'.join([self.ansible_paths['library'], '/usr/share/ansible/library', 'ro']))
             self.environment['ANSIBLE_LIBRARY'] = '/usr/share/ansible/library'
 
         if self.ansible_paths['plugins']['action']:
-            self.bindings[self.ansible_paths['plugins']['action']] = {
-                'bind': '/usr/share/ansible_plugins/action_plugins',
-                'ro': True
-            }
+            self.bindings.append(':'.join([
+                self.ansible_paths['plugins']['action'],
+                '/usr/share/ansible_plugins/action_plugins',
+                'ro'
+            ]))
 
         if self.ansible_paths['plugins']['filter']:
-            self.bindings[self.ansible_paths['plugins']['filter']] = {
-                'bind': '/usr/share/ansible_plugins/filter_plugins',
-                'ro': True
-            }
+            self.bindings.append(':'.join([
+                self.ansible_paths['plugins']['filter'],
+                '/usr/share/ansible_plugins/filter_plugins',
+                'ro'
+            ]))
 
         if self.ansible_paths['plugins']['lookup']:
-            self.bindings[self.ansible_paths['plugins']['lookup']] = {
-                'bind': '/usr/share/ansible_plugins/lookup_plugins',
-                'ro': True
-            }
+            self.bindings.append(':'.join([
+                self.ansible_paths['plugins']['lookup'],
+                '/usr/share/ansible_plugins/lookup_plugins',
+                'ro'
+            ]))
 
     def stream(self, *cmd):
         """
